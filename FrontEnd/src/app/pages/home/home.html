@@ -1,0 +1,494 @@
+<div class="home">
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+
+    <a class="brand" href="#">
+      <div class="brand-symbol">
+        R
+      </div>
+
+      <div class="brand-text">
+        <strong>RESERVA</strong>
+        <span>ESPACIOS & EVENTOS</span>
+      </div>
+    </a>
+
+    <nav class="nav-links">
+      <a href="#inicio">Inicio</a>
+      <a href="#espacios">Espacios</a>
+      <a href="#experiencias">Experiencias</a>
+      <a href="#nosotros">Nosotros</a>
+    </nav>
+
+    <button class="nav-account">
+      Mi cuenta
+      <span>↗</span>
+    </button>
+
+  </header>
+
+
+  <!-- HERO -->
+  <main>
+
+    <section class="hero" id="inicio">
+
+      <div class="hero-decoration decoration-one"></div>
+      <div class="hero-decoration decoration-two"></div>
+
+      <div class="hero-content">
+
+        <div class="hero-kicker">
+          <span class="dot"></span>
+          Bogotá · Espacios para eventos
+        </div>
+
+        <h1>
+          Tu evento merece
+          <span>un gran lugar.</span>
+        </h1>
+
+        <p class="hero-description">
+          Espacios con personalidad para celebraciones,
+          encuentros y momentos que merecen ser recordados.
+        </p>
+
+        <div class="hero-actions">
+
+          <button class="button-primary">
+            Explorar espacios
+            <span>→</span>
+          </button>
+
+          <button class="button-link">
+            ¿Cómo funciona?
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- BUSCADOR -->
+      <div class="search-card">
+
+        <div class="search-card-top">
+          <span>ENCUENTRA TU ESPACIO</span>
+          <span class="search-number">01 / 03</span>
+        </div>
+
+        <h2>
+          Cuéntanos sobre
+          <em>tu próximo evento.</em>
+        </h2>
+
+        <div class="search-fields">
+
+          <div class="field">
+            <label>Fecha del evento</label>
+            <input type="date">
+          </div>
+
+          <div class="field">
+            <label>Número de invitados</label>
+
+            <div class="input-with-icon">
+              <input type="number" placeholder="Ej. 80">
+              <span>personas</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Tipo de evento</label>
+
+            <select>
+              <option value="">Seleccionar</option>
+              <option>Celebración</option>
+              <option>Evento corporativo</option>
+              <option>Conferencia</option>
+              <option>Boda</option>
+              <option>Reunión privada</option>
+            </select>
+          </div>
+
+        </div>
+
+        <button class="search-button">
+          Buscar disponibilidad
+          <span>↗</span>
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- MARQUEE -->
+    <section class="ticker">
+
+      <div class="ticker-content">
+        <span>CELEBRA</span>
+        <i>✦</i>
+        <span>REÚNE</span>
+        <i>✦</i>
+        <span>DESCUBRE</span>
+        <i>✦</i>
+        <span>CREA</span>
+        <i>✦</i>
+        <span>RESERVA</span>
+      </div>
+
+    </section>
+
+
+    <!-- INTRO -->
+    <section class="intro">
+
+      <div class="intro-label">
+        <span>02</span>
+        NUESTROS ESPACIOS
+      </div>
+
+      <div class="intro-content">
+
+        <h2>
+          Lugares que hacen
+          <br>
+          parte de la historia.
+        </h2>
+
+        <p>
+          Cada espacio tiene una personalidad diferente.
+          Encuentra el ambiente, capacidad y estilo que mejor
+          se adapte a lo que quieres crear.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ESPACIOS -->
+    <section class="spaces" id="espacios">
+
+      @for (espacio of espacios; track espacio.nombre) {
+
+        <article class="space-card">
+
+          <div
+            class="space-image"
+            [class.aura]="espacio.estilo === 'aura'"
+            [class.nomada]="espacio.estilo === 'nomada'"
+            [class.studio]="espacio.estilo === 'studio'"
+          >
+
+            <div class="image-label">
+              {{ espacio.tipo }}
+            </div>
+
+            <div class="fake-photo-content">
+              <span>{{ espacio.nombre }}</span>
+            </div>
+
+            <button class="circle-button">
+              ↗
+            </button>
+
+          </div>
+
+
+          <div class="space-content">
+
+            <div>
+              <span class="space-type">
+                {{ espacio.tipo }}
+              </span>
+
+              <h3>{{ espacio.nombre }}</h3>
+            </div>
+
+
+            <div class="space-information">
+
+              <div>
+                <span>AFORO</span>
+                <strong>{{ espacio.capacidad }} personas</strong>
+              </div>
+
+              <div>
+                <span>DESDE</span>
+                <strong>{{ espacio.precio }} / hora</strong>
+              </div>
+
+            </div>
+
+          </div>
+
+        </article>
+
+      }
+
+    </section>
+
+
+    <div class="center-action">
+      <button class="outline-button">
+        Ver todos los espacios
+        <span>→</span>
+      </button>
+    </div>
+
+
+    <!-- EXPERIENCE -->
+    <section class="experience" id="experiencias">
+
+      <div class="experience-top">
+
+        <div class="experience-title">
+
+          <span class="section-tag">
+            03 · TU EXPERIENCIA
+          </span>
+
+          <h2>
+            Un espacio.
+            <br>
+            <em>Todo lo demás.</em>
+          </h2>
+
+        </div>
+
+        <p>
+          Además del lugar, puedes complementar tu reserva
+          con servicios pensados para que cada detalle de tu
+          evento tenga sentido.
+        </p>
+
+      </div>
+
+
+      <div class="services-list">
+
+        @for (servicio of servicios; track servicio.numero) {
+
+          <article class="service-row">
+
+            <span class="service-number">
+              {{ servicio.numero }}
+            </span>
+
+            <h3>
+              {{ servicio.nombre }}
+            </h3>
+
+            <p>
+              {{ servicio.descripcion }}
+            </p>
+
+            <span class="service-arrow">
+              ↗
+            </span>
+
+          </article>
+
+        }
+
+      </div>
+
+    </section>
+
+
+    <!-- HOW -->
+    <section class="how">
+
+      <div class="how-header">
+
+        <span class="section-tag">
+          04 · RESERVAR ES SIMPLE
+        </span>
+
+        <h2>
+          Tu evento comienza
+          <br>
+          en tres pasos.
+        </h2>
+
+      </div>
+
+
+      <div class="steps">
+
+        <article class="step step-yellow">
+
+          <div class="step-number">
+            01
+          </div>
+
+          <div>
+            <h3>Encuentra</h3>
+
+            <p>
+              Explora nuestros espacios y encuentra el que se
+              adapte al tamaño y estilo de tu evento.
+            </p>
+          </div>
+
+        </article>
+
+
+        <article class="step step-orange">
+
+          <div class="step-number">
+            02
+          </div>
+
+          <div>
+            <h3>Personaliza</h3>
+
+            <p>
+              Selecciona fecha, horario y servicios adicionales
+              para construir tu experiencia.
+            </p>
+          </div>
+
+        </article>
+
+
+        <article class="step step-green">
+
+          <div class="step-number">
+            03
+          </div>
+
+          <div>
+            <h3>Reserva</h3>
+
+            <p>
+              Revisa los detalles, confirma tu reserva y
+              nosotros nos encargamos del resto.
+            </p>
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+
+    <!-- FEATURE -->
+    <section class="feature">
+
+      <div class="feature-image">
+
+        <div class="feature-big-text">
+          MAKE
+          <br>
+          IT
+          <em>MEMORABLE.</em>
+        </div>
+
+      </div>
+
+
+      <div class="feature-content">
+
+        <span class="section-tag">
+          MÁS QUE UN ESPACIO
+        </span>
+
+        <h2>
+          Diseñado para
+          reunir personas.
+        </h2>
+
+        <p>
+          Creemos que los mejores momentos empiezan con un
+          buen lugar. Por eso nuestros espacios están pensados
+          para adaptarse a distintos tipos de experiencias.
+        </p>
+
+        <button class="button-dark">
+          Conoce nuestra sede
+          <span>→</span>
+        </button>
+
+      </div>
+
+    </section>
+
+
+    <!-- CTA -->
+    <section class="final-cta">
+
+      <span>¿TIENES UNA FECHA EN MENTE?</span>
+
+      <h2>
+        Hagamos que
+        <em>suceda.</em>
+      </h2>
+
+      <button>
+        Reservar mi espacio
+        <span>↗</span>
+      </button>
+
+      <div class="retro-star star-one">✦</div>
+      <div class="retro-star star-two">✦</div>
+
+    </section>
+
+  </main>
+
+
+  <!-- FOOTER -->
+  <footer>
+
+    <div class="footer-brand">
+
+      <div class="brand-symbol footer-symbol">
+        R
+      </div>
+
+      <div>
+        <strong>RESERVA</strong>
+        <p>Espacios para momentos memorables.</p>
+      </div>
+
+    </div>
+
+
+    <div class="footer-columns">
+
+      <div>
+        <span>EXPLORA</span>
+        <a href="#">Inicio</a>
+        <a href="#">Espacios</a>
+        <a href="#">Servicios</a>
+      </div>
+
+      <div>
+        <span>AYUDA</span>
+        <a href="#">Mis reservas</a>
+        <a href="#">Contacto</a>
+        <a href="#">Preguntas frecuentes</a>
+      </div>
+
+      <div>
+        <span>VISÍTANOS</span>
+        <p>Bogotá, Colombia</p>
+        <p>Lun — Dom</p>
+      </div>
+
+    </div>
+
+
+    <div class="footer-bottom">
+      <span>© 2026 Reserva</span>
+      <span>Espacios · Eventos · Experiencias</span>
+    </div>
+
+  </footer>
+
+</div>
