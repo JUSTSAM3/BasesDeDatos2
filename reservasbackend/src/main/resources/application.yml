@@ -10,7 +10,7 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_db}?authSource=admin
+      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin
 
   jpa:
     hibernate:
