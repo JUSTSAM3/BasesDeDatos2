@@ -1,0 +1,131 @@
+<div class="dashboard">
+
+  <h1>Dashboard</h1>
+  <p class="subtitulo">
+    Resumen general del sistema de reservas
+  </p>
+
+  <div class="cards">
+
+    @for (item of resumen; track item.titulo) {
+      <div class="card">
+        <p>{{ item.titulo }}</p>
+        <h2>{{ item.valor }}</h2>
+      </div>
+    }
+
+  </div>
+
+  <div class="tabla-contenedor">
+
+    <div class="tabla-header">
+      <h2>Reservas recientes</h2>
+      <button>Nueva reserva</button>
+    </div>
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Espacio</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        @for (reserva of reservas; track reserva.cliente) {
+          <tr>
+            <td>{{ reserva.cliente }}</td>
+            <td>{{ reserva.espacio }}</td>
+            <td>{{ reserva.fecha }}</td>
+            <td>{{ reserva.hora }}</td>
+
+            <td>
+              <span
+                class="estado"
+                [class.confirmada]="reserva.estado === 'Confirmada'"
+                [class.pendiente]="reserva.estado === 'Pendiente'"
+              >
+                {{ reserva.estado }}
+              </span>
+            </td>
+
+          </tr>
+        }
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div><div class="dashboard">
+
+  <h1>Dashboard</h1>
+  <p class="subtitulo">
+    Resumen general del sistema de reservas
+  </p>
+
+  <div class="cards">
+
+    @for (item of resumen; track item.titulo) {
+      <div class="card">
+        <p>{{ item.titulo }}</p>
+        <h2>{{ item.valor }}</h2>
+      </div>
+    }
+
+  </div>
+
+  <div class="tabla-contenedor">
+
+    <div class="tabla-header">
+      <h2>Reservas recientes</h2>
+      <button>Nueva reserva</button>
+    </div>
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Espacio</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+
+      <tbody>
+
+        @for (reserva of reservas; track reserva.cliente) {
+          <tr>
+            <td>{{ reserva.cliente }}</td>
+            <td>{{ reserva.espacio }}</td>
+            <td>{{ reserva.fecha }}</td>
+            <td>{{ reserva.hora }}</td>
+
+            <td>
+              <span
+                class="estado"
+                [class.confirmada]="reserva.estado === 'Confirmada'"
+                [class.pendiente]="reserva.estado === 'Pendiente'"
+              >
+                {{ reserva.estado }}
+              </span>
+            </td>
+
+          </tr>
+        }
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>
