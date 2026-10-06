@@ -7,14 +7,24 @@ spring:
     username: ${POSTGRES_USER:reservas_admin}
     password: ${POSTGRES_PASSWORD:admin}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: ReservasHikariCP
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      connection-test-query: SELECT 1
 
   data:
     mongodb:
       uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin
 
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     properties:
       hibernate:
         format_sql: true
@@ -23,4 +33,5 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+    baseline-version: 0
     locations: classpath:db/migration
