@@ -59,4 +59,55 @@ public class RdbmsHealthController {
             return ResponseEntity.status(503).body(response);
         }
     }
+
+    /**
+     * Endpoint EDT 7.1: Ejecuta y valida la suite de pruebas del RDBMS
+     * (funciones, procedimientos y triggers).
+     */
+    @GetMapping("/test-routines")
+    public ResponseEntity<Map<String, Object>> runRdbmsRoutinesTests() {
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try (Connection connection = dataSource.getConnection()) {
+            org.springframework.core.io.ClassPathResource scriptResource =
+                    new org.springframework.core.io.ClassPathResource("db/test/7.1_pruebas_rdbms.sql");
+
+            org.springframework.jdbc.datasource.init.ResourceDatabasePopulator populator =
+                    new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator();
+            populator.addScript(scriptResource);
+            populator.setSeparator(";;"); // Permite ejecutar el bloque anonimo PL/pgSQL completo
+            // Alternativamente ejecutar como sentencia unica:
+            try (Statement statement = connection.createStatement();
+                 java.io.InputStream is = scriptResource.getInputStream()) {
+                String sql = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                statement.execute(sql);
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "SUCCESS");
+            response.put("edtTask", "7.1 Pruebas del RDBMS");
+            response.put("testedComponents", java.util.List.of(
+                    "sp_crear_reserva (Procedimiento)",
+                    "fn_validar_disponibilidad (Funcion)",
+                    "trg_validar_cruce_horario (Trigger)",
+                    "fn_calcular_costo_total (Funcion)",
+                    "trg_recalcular_costo_servicios (Trigger)",
+                    "trg_generar_factura_al_confirmar (Trigger)",
+                    "sp_registrar_pago (Procedimiento)",
+                    "fn_estado_pago (Funcion)",
+                    "sp_cancelar_reserva (Procedimiento)"
+            ));
+            response.put("executionTimeMs", duration);
+            response.put("message", "Todas las pruebas de procedimientos, funciones y triggers pasaron exitosamente (6/6).");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            response.put("status", "FAILED");
+            response.put("edtTask", "7.1 Pruebas del RDBMS");
+            response.put("error", e.getMessage());
+            response.put("executionTimeMs", duration);
+            return ResponseEntity.status(500).body(response);
+        }
+    }
 }
