@@ -10,6 +10,10 @@ CREATE OR REPLACE FUNCTION fn_validar_horario(vd_fecha_inicio TIMESTAMP, vd_fech
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_hora_inicio INT;
+    v_hora_fin INT;
+BEGIN
     v_hora_inicio := EXTRACT(HOUR FROM vd_fecha_inicio);
     v_hora_fin := EXTRACT(HOUR FROM vd_fecha_fin);
     
