@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  * Separa los repositorios relacionales de los repositorios NoSQL (MongoDB).
  */
 @Configuration
-@EnableJpaRepositories(basePackages = "co.edu.unbosque.reservasbackend.repository.jpa")
+@EnableJpaRepositories(basePackages = "co.edu.unbosque.reservasbackend.sql.repository")
 public class JpaConfig {
 }
