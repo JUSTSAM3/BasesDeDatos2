@@ -71,12 +71,12 @@ DECLARE
     v_costo_servicios DECIMAL(12,2) := 0.00;
     v_horas NUMERIC;
     v_tarifa DECIMAL(10,2);
-    v_inicio TIMESTAMP;
-    v_fin TIMESTAMP;
+    vd_inicio TIMESTAMP;
+    vd_fin TIMESTAMP;
     v_id_espacio INT;
 BEGIN
     SELECT r.fecha_inicio, r.fecha_fin, r.id_espacio
-    INTO v_inicio, v_fin, v_id_espacio
+    INTO vd_inicio, vd_fin, v_id_espacio
     FROM reservas r
     WHERE r.id_reserva = p_id_reserva;
 
@@ -89,7 +89,7 @@ BEGIN
     FROM espacios
     WHERE id_espacio = v_id_espacio;
 
-    v_horas := EXTRACT(EPOCH FROM (v_fin - v_inicio)) / 3600.0;
+    v_horas := EXTRACT(EPOCH FROM (vd_fin - vd_inicio)) / 3600.0;
     IF v_horas < 1 THEN
         v_horas := 1;
     END IF;
@@ -153,13 +153,13 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_num_factura VARCHAR(50);
+    vv_num_factura VARCHAR(50);
 BEGIN
     IF NEW.estado = 'confirmada' AND (OLD.estado IS NULL OR OLD.estado <> 'confirmada') THEN
         IF NOT EXISTS (SELECT 1 FROM facturas WHERE id_reserva = NEW.id_reserva) THEN
-            v_num_factura := 'FAC-' || TO_CHAR(CURRENT_DATE, 'YYYY') || '-' || LPAD(NEW.id_reserva::TEXT, 5, '0');
+            vv_num_factura := 'FAC-' || TO_CHAR(CURRENT_DATE, 'YYYY') || '-' || LPAD(NEW.id_reserva::TEXT, 5, '0');
             INSERT INTO facturas (id_reserva, numero_factura, fecha_emision, total)
-            VALUES (NEW.id_reserva, v_num_factura, CURRENT_TIMESTAMP, NEW.costo_total);
+            VALUES (NEW.id_reserva, vv_num_factura, CURRENT_TIMESTAMP, NEW.costo_total);
         END IF;
     END IF;
     RETURN NEW;
@@ -173,9 +173,9 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_trg_generar_factura_al_confirmar();
 
 -- ---------------------------------------------------------------------
--- 6. PROCEDIMIENTO: sp_crear_reserva (RF-07)
+-- 6. PROCEDIMIENTO: SP_CREAR_RESERVA (RF-07)
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE PROCEDURE sp_crear_reserva(
+CREATE OR REPLACE PROCEDURE SP_CREAR_RESERVA(
     IN p_id_cliente INT,
     IN p_id_espacio INT,
     IN p_id_empleado INT,
@@ -206,9 +206,9 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------
--- 7. PROCEDIMIENTO: sp_registrar_pago (RF-13)
+-- 7. PROCEDIMIENTO: SP_REGISTRAR_PAGO (RF-13)
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE PROCEDURE sp_registrar_pago(
+CREATE OR REPLACE PROCEDURE SP_REGISTRAR_PAGO(
     IN p_id_factura INT,
     IN p_tipo_pago VARCHAR(20),
     IN p_monto DECIMAL(12,2),
@@ -245,27 +245,27 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------
--- 8. PROCEDIMIENTO: sp_cancelar_reserva (RF-09, RNF-03)
+-- 8. PROCEDIMIENTO: SP_CANCELAR_RESERVA (RF-09, RNF-03)
 -- ---------------------------------------------------------------------
-CREATE OR REPLACE PROCEDURE sp_cancelar_reserva(
+CREATE OR REPLACE PROCEDURE SP_CANCELAR_RESERVA(
     IN p_id_reserva INT
 )
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_inicio TIMESTAMP;
-    v_estado VARCHAR(20);
+    vd_inicio TIMESTAMP;
+    vv_estado VARCHAR(20);
 BEGIN
-    SELECT fecha_inicio, estado INTO v_inicio, v_estado FROM reservas WHERE id_reserva = p_id_reserva;
+    SELECT fecha_inicio, estado INTO vd_inicio, vv_estado FROM reservas WHERE id_reserva = p_id_reserva;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Reserva % no encontrada', p_id_reserva;
     END IF;
 
-    IF v_inicio <= CURRENT_TIMESTAMP THEN
+    IF vd_inicio <= CURRENT_TIMESTAMP THEN
         RAISE EXCEPTION 'No es posible cancelar una reserva cuyo evento ya ha iniciado o finalizado';
     END IF;
 
-    IF v_estado = 'cancelada' THEN
+    IF vv_estado = 'cancelada' THEN
         RAISE EXCEPTION 'La reserva % ya se encuentra cancelada', p_id_reserva;
     END IF;
 
