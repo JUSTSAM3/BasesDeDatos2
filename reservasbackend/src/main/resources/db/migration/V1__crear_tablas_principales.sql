@@ -1,5 +1,5 @@
 -- =====================================================================
--- EDT 6.1 - Conexion a RDBMS (PostgreSQL 16)
+-- Este scrip es el encargado de crear las tablas necesarias en la base de datos al levantar la aplicacion
 -- Script Inicial de Migracion Flyway V1
 -- =====================================================================
 
