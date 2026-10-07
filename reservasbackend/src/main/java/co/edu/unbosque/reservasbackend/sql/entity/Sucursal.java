@@ -1,4 +1,4 @@
-package co.edu.unbosque.reservasbackend.model.jpa;
+package co.edu.unbosque.reservasbackend.sql.entity;
 
 import jakarta.persistence.*;
 

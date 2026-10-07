@@ -1,6 +1,6 @@
-package co.edu.unbosque.reservasbackend.repository.mongo;
+package co.edu.unbosque.reservasbackend.nosql.repository;
 
-import co.edu.unbosque.reservasbackend.model.mongo.DetalleEvento;
+import co.edu.unbosque.reservasbackend.nosql.document.DetalleEvento;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
