@@ -3,10 +3,10 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  templateUrl: './dashboard.html',
-  styleUrl: './dashboard.css'
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss'
 })
-export class Dashboard {
+export class DashboardComponent {
 
   resumen = [
     { titulo: 'Reservas hoy', valor: 12 },

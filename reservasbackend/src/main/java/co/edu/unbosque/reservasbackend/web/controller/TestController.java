@@ -1,4 +1,4 @@
-package co.edu.unbosque.reservasbackend.controller;
+package co.edu.unbosque.reservasbackend.web.controller;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;

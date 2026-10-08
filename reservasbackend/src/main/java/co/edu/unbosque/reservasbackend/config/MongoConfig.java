@@ -10,6 +10,6 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  */
 @Configuration
 @EnableMongoAuditing
-@EnableMongoRepositories(basePackages = "co.edu.unbosque.reservasbackend.repository.mongo")
+@EnableMongoRepositories(basePackages = "co.edu.unbosque.reservasbackend.nosql.repository")
 public class MongoConfig {
 }

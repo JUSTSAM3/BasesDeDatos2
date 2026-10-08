@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
       POSTGRES_USER: ${POSTGRES_USER:-reservas_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:mapachereservaS2506}
     ports:
       - "5432:5432"
     volumes:
