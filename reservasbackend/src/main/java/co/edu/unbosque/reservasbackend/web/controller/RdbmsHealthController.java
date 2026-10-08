@@ -1,4 +1,4 @@
-package co.edu.unbosque.reservasbackend.controller;
+package co.edu.unbosque.reservasbackend.web.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

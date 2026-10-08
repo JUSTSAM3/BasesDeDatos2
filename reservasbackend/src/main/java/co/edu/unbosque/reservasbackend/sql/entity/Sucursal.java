@@ -7,6 +7,13 @@ import java.io.Serializable;
 @Table(name = "sucursales")
 public class Sucursal implements Serializable {
 
+/**
+ * Entidad JPA representativa del modelo relacional en PostgreSQL.
+ */
+@Entity
+@Table(name = "sucursales")
+public class Sucursal {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_sucursal")

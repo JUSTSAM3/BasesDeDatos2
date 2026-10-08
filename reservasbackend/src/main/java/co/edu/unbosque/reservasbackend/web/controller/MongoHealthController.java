@@ -1,4 +1,4 @@
-package co.edu.unbosque.reservasbackend.controller;
+package co.edu.unbosque.reservasbackend.web.controller;
 
 import org.bson.Document;
 import org.springframework.data.mongodb.core.MongoTemplate;

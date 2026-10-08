@@ -1,4 +1,4 @@
-package co.edu.unbosque.reservasbackend.model.mongo;
+package co.edu.unbosque.reservasbackend.nosql.document;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
