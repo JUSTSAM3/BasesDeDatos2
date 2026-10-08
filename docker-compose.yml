@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16-bookworm
     container_name: reservas-postgres
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-reservas_db}
       POSTGRES_USER: ${POSTGRES_USER:-reservas_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:mapachereservaS2506}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prueba123} #Cambiar contraseña
     ports:
       - "5432:5432"
     volumes:
