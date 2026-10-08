@@ -3,8 +3,10 @@ package co.edu.unbosque.reservasbackend.sql.service;
 import co.edu.unbosque.reservasbackend.dto.EspacioRequestDTO;
 import co.edu.unbosque.reservasbackend.sql.entity.Espacio;
 import co.edu.unbosque.reservasbackend.sql.entity.Sucursal;
+import co.edu.unbosque.reservasbackend.sql.entity.TipoEspacio;
 import co.edu.unbosque.reservasbackend.sql.repository.EspacioRepository;
 import co.edu.unbosque.reservasbackend.sql.repository.SucursalRepository;
+import co.edu.unbosque.reservasbackend.sql.repository.TipoEspacioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,14 +21,20 @@ public class EspacioService {
     @Autowired
     private SucursalRepository sucursalRepository;
 
+    @Autowired
+    private TipoEspacioRepository tipoEspacioRepository;
+
     public Espacio crearEspacio(EspacioRequestDTO dto) {
         Sucursal sucursal = sucursalRepository.findById(dto.getIdSucursal())
                 .orElseThrow(() -> new RuntimeException("Sucursal no encontrada con ID: " + dto.getIdSucursal()));
 
+        TipoEspacio tipoEspacio = tipoEspacioRepository.findById(dto.getIdTipoEspacio())
+                .orElseThrow(() -> new RuntimeException("TipoEspacio no encontrado con ID: " + dto.getIdTipoEspacio()));
+
         Espacio espacio = new Espacio();
         espacio.setSucursal(sucursal);
         espacio.setNombre(dto.getNombre());
-        espacio.setTipo(dto.getTipo());
+        espacio.setTipoEspacio(tipoEspacio);
         espacio.setCapacidad(dto.getCapacidad());
         espacio.setTarifaPorHora(dto.getTarifaPorHora());
         espacio.setEstado(dto.getEstado() != null ? dto.getEstado() : "disponible");
