@@ -1,57 +1,80 @@
 package co.edu.unbosque.reservasbackend.sql.service;
 
 import co.edu.unbosque.reservasbackend.dto.ReservaRequestDTO;
-import co.edu.unbosque.reservasbackend.sql.entity.Cliente;
-import co.edu.unbosque.reservasbackend.sql.entity.Empleado;
-import co.edu.unbosque.reservasbackend.sql.entity.Espacio;
-import co.edu.unbosque.reservasbackend.sql.entity.Reserva;
-import co.edu.unbosque.reservasbackend.sql.repository.ClienteRepository;
-import co.edu.unbosque.reservasbackend.sql.repository.EmpleadoRepository;
-import co.edu.unbosque.reservasbackend.sql.repository.EspacioRepository;
-import co.edu.unbosque.reservasbackend.sql.repository.ReservaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import co.edu.unbosque.reservasbackend.dto.ReservaResponseDTO;
+
+
+import tools.jackson.databind.ObjectMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ReservaService {
 
-    @Autowired
-    private ReservaRepository reservaRepository;
-    @Autowired
-    private ClienteRepository clienteRepository;
-    @Autowired
-    private EspacioRepository espacioRepository;
-    @Autowired
-    private EmpleadoRepository empleadoRepository;
+    private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
-    public Reserva crearReserva(ReservaRequestDTO dto) {
+    public ReservaService(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = objectMapper;
+    }
 
-        // 1. Buscar el cliente
-        Cliente cliente = clienteRepository.findById(dto.getIdCliente())
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado con ID: " + dto.getIdCliente()));
+    @Transactional
+    public ReservaResponseDTO crearReserva(ReservaRequestDTO dto) {
 
-        // 2. Buscar el espacio
-        Espacio espacio = espacioRepository.findById(dto.getIdEspacio())
-                .orElseThrow(() -> new RuntimeException("Espacio no encontrado con ID: " + dto.getIdEspacio()));
-
-        // 3. Buscar empleado (Opcional, puede ser null)
-        Empleado empleado = null;
-        if (dto.getIdEmpleado() != null) {
-            empleado = empleadoRepository.findById(dto.getIdEmpleado())
-                    .orElseThrow(() -> new RuntimeException("Empleado no encontrado con ID: " + dto.getIdEmpleado()));
+        String jsonServicios = "[]";
+        if (dto.getServicios() != null && !dto.getServicios().isEmpty()) {
+            try {
+                List<Map<String, Object>> mappedServicios = new ArrayList<>();
+                for (ReservaRequestDTO.ServicioAdicionalDTO s : dto.getServicios()) {
+                    mappedServicios.add(Map.of(
+                            "id_servicio", s.getIdServicio(),
+                            "cantidad", s.getCantidad()
+                    ));
+                }
+                jsonServicios = objectMapper.writeValueAsString(mappedServicios);
+            } catch (Exception e) {
+                throw new RuntimeException("Error al serializar los servicios", e);
+            }
         }
 
-        // 4. Crear el objeto Reserva
-        Reserva reserva = new Reserva();
-        reserva.setCliente(cliente);
-        reserva.setEspacio(espacio);
-        reserva.setEmpleado(empleado);
-        reserva.setFechaInicio(dto.getFechaInicio());
-        reserva.setFechaFin(dto.getFechaFin());
+        // Llamar al SP usando queryForObject. Esto es preferible a CallableStatement
+        // porque JdbcTemplate mapea automáticamente el retorno del SP (INOUT) en PostgreSQL
+        // a un ResultSet de una fila y una columna, permitiendo extraer el Integer directamente.
+        String sql = "CALL SP_CREAR_RESERVA(?, ?, ?, ?, ?, ?::jsonb, NULL)";
+        
+        Integer idReserva = jdbcTemplate.queryForObject(
+                sql,
+                Integer.class,
+                dto.getIdCliente(),
+                dto.getIdEspacio(),
+                dto.getIdEmpleado(), // Puede ser null
+                dto.getFechaInicio(),
+                dto.getFechaFin(),
+                jsonServicios
+        );
 
-        // 5. Guardar en Base de Datos.
-        // - trg_validar_cruce_horario (Para ver si el espacio está disponible)
-        // - tg_validar_fechas_coherentes (Para evitar fechas en el pasado)
-        return reservaRepository.save(reserva);
+        // Consultar el estado final y el costo total despues del trigger
+        String selectSql = "SELECT estado, costo_total FROM reservas WHERE id_reserva = ?";
+        Map<String, Object> result = jdbcTemplate.queryForMap(selectSql, idReserva);
+
+        ReservaResponseDTO response = new ReservaResponseDTO();
+        response.setIdReserva(idReserva);
+        response.setEstado((String) result.get("estado"));
+        
+        Object costoObj = result.get("costo_total");
+        if (costoObj instanceof Number) {
+            response.setCostoTotal(new BigDecimal(costoObj.toString()));
+        } else if (costoObj != null) {
+            response.setCostoTotal(new BigDecimal(costoObj.toString()));
+        }
+
+        return response;
     }
 }

@@ -1,27 +1,35 @@
 package co.edu.unbosque.reservasbackend.controller;
 
 import co.edu.unbosque.reservasbackend.dto.ReservaRequestDTO;
-import co.edu.unbosque.reservasbackend.sql.entity.Reserva;
+import co.edu.unbosque.reservasbackend.dto.ReservaResponseDTO;
 import co.edu.unbosque.reservasbackend.sql.service.ReservaService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/reservas")
 @CrossOrigin(origins = "http://localhost:4200")
 public class ReservaController {
 
-    @Autowired
-    private ReservaService reservaService;
+    private final ReservaService reservaService;
+
+    public ReservaController(ReservaService reservaService) {
+        this.reservaService = reservaService;
+    }
 
     @PostMapping("/crear")
-    public ResponseEntity<?> crearReserva(@RequestBody ReservaRequestDTO dto) {
-        try {
-            Reserva nuevaReserva = reservaService.crearReserva(dto);
-            return ResponseEntity.ok(nuevaReserva);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error al crear la reserva: " + e.getMessage());
-        }
+    public ResponseEntity<ReservaResponseDTO> crearReserva(@Valid @RequestBody ReservaRequestDTO dto) {
+        ReservaResponseDTO response = reservaService.crearReserva(dto);
+        
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(response.getIdReserva())
+                .toUri();
+                
+        return ResponseEntity.created(location).body(response);
     }
 }
