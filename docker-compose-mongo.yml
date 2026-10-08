@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-prueba123} #Cambiar contraseña
       MONGO_INITDB_DATABASE: ${MONGO_DB:-reservas_eventos_docs}
     ports:
       - "27017:27017"
