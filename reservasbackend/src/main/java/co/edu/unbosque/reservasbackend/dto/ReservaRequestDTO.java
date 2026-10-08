@@ -1,6 +1,8 @@
 package co.edu.unbosque.reservasbackend.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class ReservaRequestDTO {
 
@@ -9,8 +11,8 @@ public class ReservaRequestDTO {
     private Integer idEmpleado;
     private LocalDateTime fechaInicio;
     private LocalDateTime fechaFin;
+    private List<ServicioAdicionalDTO> servicios;
 
-    // Getters y Setters
     public Integer getIdCliente() { return idCliente; }
     public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
@@ -25,4 +27,21 @@ public class ReservaRequestDTO {
 
     public LocalDateTime getFechaFin() { return fechaFin; }
     public void setFechaFin(LocalDateTime fechaFin) { this.fechaFin = fechaFin; }
+
+    public List<ServicioAdicionalDTO> getServicios() { return servicios; }
+    public void setServicios(List<ServicioAdicionalDTO> servicios) { this.servicios = servicios; }
+
+    public static class ServicioAdicionalDTO {
+        @JsonProperty("id_servicio")
+        private Integer idServicio;
+
+        @JsonProperty("cantidad")
+        private Integer cantidad;
+
+        public Integer getIdServicio() { return idServicio; }
+        public void setIdServicio(Integer idServicio) { this.idServicio = idServicio; }
+
+        public Integer getCantidad() { return cantidad; }
+        public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+    }
 }
