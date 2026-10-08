@@ -1,6 +1,5 @@
 package co.edu.unbosque.reservasbackend.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -59,12 +58,10 @@ public class ReservaRequestDTO {
 
     public static class ServicioAdicionalDTO {
         @NotNull(message = "El id_servicio es obligatorio")
-        @JsonProperty("id_servicio")
         private Integer idServicio;
 
         @NotNull(message = "La cantidad es obligatoria")
         @Positive(message = "La cantidad debe ser mayor a 0")
-        @JsonProperty("cantidad")
         private Integer cantidad;
 
         public Integer getIdServicio() { return idServicio; }

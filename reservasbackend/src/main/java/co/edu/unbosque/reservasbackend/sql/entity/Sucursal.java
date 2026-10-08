@@ -3,16 +3,12 @@ package co.edu.unbosque.reservasbackend.sql.entity;
 import jakarta.persistence.*;
 import java.io.Serializable;
 
-@Entity
-@Table(name = "sucursales")
-public class Sucursal implements Serializable {
-
 /**
  * Entidad JPA representativa del modelo relacional en PostgreSQL.
  */
 @Entity
 @Table(name = "sucursales")
-public class Sucursal {
+public class Sucursal implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

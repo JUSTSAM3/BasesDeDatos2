@@ -2,13 +2,16 @@ package co.edu.unbosque.reservasbackend.sql.service;
 
 import co.edu.unbosque.reservasbackend.dto.ReservaRequestDTO;
 import co.edu.unbosque.reservasbackend.dto.ReservaResponseDTO;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
+
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -28,8 +31,15 @@ public class ReservaService {
         String jsonServicios = "[]";
         if (dto.getServicios() != null && !dto.getServicios().isEmpty()) {
             try {
-                jsonServicios = objectMapper.writeValueAsString(dto.getServicios());
-            } catch (JsonProcessingException e) {
+                List<Map<String, Object>> mappedServicios = new ArrayList<>();
+                for (ReservaRequestDTO.ServicioAdicionalDTO s : dto.getServicios()) {
+                    mappedServicios.add(Map.of(
+                            "id_servicio", s.getIdServicio(),
+                            "cantidad", s.getCantidad()
+                    ));
+                }
+                jsonServicios = objectMapper.writeValueAsString(mappedServicios);
+            } catch (Exception e) {
                 throw new RuntimeException("Error al serializar los servicios", e);
             }
         }
