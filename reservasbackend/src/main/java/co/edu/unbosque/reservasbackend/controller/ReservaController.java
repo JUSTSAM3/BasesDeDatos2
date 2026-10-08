@@ -4,6 +4,7 @@ import co.edu.unbosque.reservasbackend.dto.ReservaRequestDTO;
 import co.edu.unbosque.reservasbackend.dto.ReservaResponseDTO;
 import co.edu.unbosque.reservasbackend.sql.service.ReservaService;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -21,7 +22,7 @@ public class ReservaController {
     }
 
     @PostMapping("/crear")
-    public ResponseEntity<ReservaResponseDTO> crearReserva(@RequestBody ReservaRequestDTO dto) {
+    public ResponseEntity<ReservaResponseDTO> crearReserva(@Valid @RequestBody ReservaRequestDTO dto) {
         ReservaResponseDTO response = reservaService.crearReserva(dto);
         
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
