@@ -18,9 +18,9 @@ DECLARE
     v_disponible BOOLEAN;
     v_costo_calculado DECIMAL(12,2);
     v_cruce_bloqueado BOOLEAN := FALSE;
-    v_factura_creada BOOLEAN := FALSE;
     v_estado_pago_res VARCHAR(20);
-    v_fecha_base TIMESTAMP := DATE_TRUNC('hour', CURRENT_TIMESTAMP + INTERVAL '5 days');
+    -- Hora base fija a las 00:00 de hoy + 5 dias, para que los intervalos sumen las horas correctamente
+    v_fecha_base TIMESTAMP := (CURRENT_DATE + INTERVAL '5 days')::TIMESTAMP;
 BEGIN
     RAISE NOTICE '=====================================================';
     RAISE NOTICE 'INICIANDO SUITE DE PRUEBAS DEL RDBMS (EDT 7.1)';
@@ -58,6 +58,7 @@ BEGIN
         v_id_empleado,
         v_fecha_base + INTERVAL '10 hours',
         v_fecha_base + INTERVAL '14 hours',
+        NULL::JSONB,
         v_id_reserva_1
     );
 
@@ -75,7 +76,7 @@ BEGIN
     END IF;
 
     -- -----------------------------------------------------------------
-    -- PRUEBA 2: Trigger trg_validar_cruce_horario (RF-08)
+    -- PRUEBA 2: Trigger trg_validar_cruce_horario / Constraint de Concurrencia (D3)
     -- -----------------------------------------------------------------
     BEGIN
         -- Intentar insertar segunda reserva que se solapa (12:00 a 16:00)
@@ -84,11 +85,11 @@ BEGIN
     EXCEPTION
         WHEN OTHERS THEN
             v_cruce_bloqueado := TRUE;
-            RAISE NOTICE '[OK] Trigger trg_validar_cruce_horario: Bloqueo exitosamente el cruce con mensaje: %', SQLERRM;
+            RAISE NOTICE '[OK] Validacion de cruce (Constraint/Trigger): Bloqueo exitosamente el cruce con mensaje: %', SQLERRM;
     END;
 
     IF NOT v_cruce_bloqueado THEN
-        RAISE EXCEPTION 'FALLO: El trigger no impidio la insercion con cruce de horario.';
+        RAISE EXCEPTION 'FALLO: No se impidio la insercion con cruce de horario.';
     END IF;
 
     -- -----------------------------------------------------------------
@@ -106,23 +107,18 @@ BEGIN
     END IF;
 
     -- -----------------------------------------------------------------
-    -- PRUEBA 4: Trigger trg_generar_factura_al_confirmar (RF-14)
+    -- PRUEBA 4 & 5: Procedimiento sp_registrar_pago y Factura automatica (RF-13, RF-14, RF-15)
     -- -----------------------------------------------------------------
-    UPDATE reservas SET estado = 'confirmada' WHERE id_reserva = v_id_reserva_1;
+    CALL sp_registrar_pago(v_id_reserva_1, 'anticipo', 500000.00, 'transferencia', v_id_pago);
+    IF v_id_pago IS NULL THEN
+        RAISE EXCEPTION 'FALLO: sp_registrar_pago no retorno id_pago';
+    END IF;
 
     SELECT id_factura INTO v_id_factura FROM facturas WHERE id_reserva = v_id_reserva_1;
     IF v_id_factura IS NOT NULL THEN
-        RAISE NOTICE '[OK] Trigger trg_generar_factura_al_confirmar: Factura #% generada automaticamente al confirmar reserva.', v_id_factura;
+        RAISE NOTICE '[OK] SP_REGISTRAR_PAGO: Factura #% generada automaticamente al registrar pago para reserva %.', v_id_factura, v_id_reserva_1;
     ELSE
-        RAISE EXCEPTION 'FALLO: No se genero la factura automatica al cambiar estado a confirmada.';
-    END IF;
-
-    -- -----------------------------------------------------------------
-    -- PRUEBA 5: Procedimiento sp_registrar_pago y Funcion fn_estado_pago (RF-13, RF-15)
-    -- -----------------------------------------------------------------
-    CALL sp_registrar_pago(v_id_factura, 'anticipo', 500000.00, 'transferencia', v_id_pago);
-    IF v_id_pago IS NULL THEN
-        RAISE EXCEPTION 'FALLO: sp_registrar_pago no retorno id_pago';
+        RAISE EXCEPTION 'FALLO: No se genero la factura automatica al pagar.';
     END IF;
 
     v_estado_pago_res := fn_estado_pago(v_id_reserva_1);
@@ -132,16 +128,23 @@ BEGIN
         RAISE EXCEPTION 'FALLO: fn_estado_pago retorno %, esperado parcial', v_estado_pago_res;
     END IF;
 
+    -- Validamos si la reserva fue confirmada por llegar al 30%
+    IF (SELECT estado FROM reservas WHERE id_reserva = v_id_reserva_1) = 'confirmada' THEN
+        RAISE NOTICE '[OK] Reserva % ha sido confirmada despues del anticipo >= 30%.', v_id_reserva_1;
+    ELSE
+        RAISE EXCEPTION 'FALLO: La reserva no se confirmo al realizar el anticipo mayor o igual al 30%.';
+    END IF;
+
     -- -----------------------------------------------------------------
     -- PRUEBA 6: Procedimiento sp_cancelar_reserva (RF-09, RNF-03)
     -- -----------------------------------------------------------------
-    -- Crear otra reserva para probar cancelacion
     CALL sp_crear_reserva(
         v_id_cliente,
         v_id_espacio,
         v_id_empleado,
-        v_fecha_base + INTERVAL '20 hours',
-        v_fecha_base + INTERVAL '23 hours',
+        v_fecha_base + INTERVAL '16 hours', -- 16:00
+        v_fecha_base + INTERVAL '19 hours', -- 19:00 (antes era 20 a 23, que violaba validar_horario)
+        NULL::JSONB,
         v_id_reserva_2
     );
 
@@ -153,7 +156,17 @@ BEGIN
         RAISE EXCEPTION 'FALLO: sp_cancelar_reserva no cambio el estado a cancelada.';
     END IF;
 
-    -- Limpieza de datos de prueba
+    -- -----------------------------------------------------------------
+    -- LIMPIEZA
+    -- -----------------------------------------------------------------
+    DELETE FROM pagos WHERE id_factura = v_id_factura;
+    
+    -- Ignorar temporalmente trigger_evitar_borrado_facturas para la limpieza
+    ALTER TABLE facturas DISABLE TRIGGER tg_evitar_borrado_facturas;
+    DELETE FROM facturas WHERE id_factura = v_id_factura;
+    ALTER TABLE facturas ENABLE TRIGGER tg_evitar_borrado_facturas;
+
+    DELETE FROM reserva_servicios WHERE id_reserva IN (v_id_reserva_1, v_id_reserva_2);
     DELETE FROM reservas WHERE id_reserva IN (v_id_reserva_1, v_id_reserva_2);
     DELETE FROM servicios_adicionales WHERE id_servicio = v_id_servicio;
     DELETE FROM espacios WHERE id_espacio = v_id_espacio;
