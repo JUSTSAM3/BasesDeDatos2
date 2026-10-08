@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 public class EspacioRequestDTO {
     private Integer idSucursal;
     private String nombre;
-    private String tipo;
+    private Integer idTipoEspacio;
     private Integer capacidad;
     private BigDecimal tarifaPorHora;
     private String estado;
@@ -16,8 +16,8 @@ public class EspacioRequestDTO {
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
 
-    public String getTipo() { return tipo; }
-    public void setTipo(String tipo) { this.tipo = tipo; }
+    public Integer getIdTipoEspacio() { return idTipoEspacio; }
+    public void setIdTipoEspacio(Integer idTipoEspacio) { this.idTipoEspacio = idTipoEspacio; }
 
     public Integer getCapacidad() { return capacidad; }
     public void setCapacidad(Integer capacidad) { this.capacidad = capacidad; }

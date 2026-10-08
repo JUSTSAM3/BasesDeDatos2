@@ -21,8 +21,9 @@ public class Espacio implements Serializable {
     @Column(name = "nombre", length = 100, nullable = false)
     private String nombre;
 
-    @Column(name = "tipo", length = 50)
-    private String tipo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_tipo_espacio", nullable = false)
+    private TipoEspacio tipoEspacio;
 
     @Column(name = "capacidad", nullable = false)
     private Integer capacidad;
@@ -60,12 +61,12 @@ public class Espacio implements Serializable {
         this.nombre = nombre;
     }
 
-    public String getTipo() {
-        return tipo;
+    public TipoEspacio getTipoEspacio() {
+        return tipoEspacio;
     }
 
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
+    public void setTipoEspacio(TipoEspacio tipoEspacio) {
+        this.tipoEspacio = tipoEspacio;
     }
 
     public Integer getCapacidad() {
