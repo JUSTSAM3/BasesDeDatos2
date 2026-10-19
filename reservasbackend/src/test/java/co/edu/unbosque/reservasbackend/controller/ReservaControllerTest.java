@@ -128,4 +128,69 @@ public class ReservaControllerTest {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value("El recurso referenciado (cliente, espacio o empleado) no existe."));
     }
+
+    @Test
+    public void testConsultarDisponibilidad_Returns200() throws Exception {
+        co.edu.unbosque.reservasbackend.dto.DisponibilidadResponseDTO dispResponse =
+                new co.edu.unbosque.reservasbackend.dto.DisponibilidadResponseDTO(
+                        1,
+                        java.time.LocalDateTime.of(2029, 10, 8, 10, 0),
+                        java.time.LocalDateTime.of(2029, 10, 8, 12, 0),
+                        true,
+                        "El espacio se encuentra disponible en el horario consultado."
+                );
+
+        Mockito.when(reservaService.validarDisponibilidad(any(), any(), any(), any()))
+                .thenReturn(dispResponse);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/reservas/disponibilidad")
+                .param("idEspacio", "1")
+                .param("fechaInicio", "2029-10-08T10:00:00")
+                .param("fechaFin", "2029-10-08T12:00:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idEspacio").value(1))
+                .andExpect(jsonPath("$.disponible").value(true));
+    }
+
+    @Test
+    public void testCancelarReservaExitosa_Returns200() throws Exception {
+        Mockito.when(reservaService.cancelarReserva(99))
+                .thenReturn(java.util.Map.of(
+                        "idReserva", 99,
+                        "estado", "cancelada",
+                        "mensaje", "Reserva cancelada exitosamente."
+                ));
+
+        mockMvc.perform(post("/api/reservas/99/cancelar"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idReserva").value(99))
+                .andExpect(jsonPath("$.estado").value("cancelada"));
+    }
+
+    @Test
+    public void testCancelarReservaYaIniciada_Returns422() throws Exception {
+        DataAccessException ex = createDataAccessException("P0001", "No es posible cancelar una reserva cuyo evento ya ha iniciado o finalizado");
+        Mockito.when(reservaService.cancelarReserva(99)).thenThrow(ex);
+
+        mockMvc.perform(post("/api/reservas/99/cancelar"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value("No es posible cancelar una reserva cuyo evento ya ha iniciado o finalizado"));
+    }
+
+    @Test
+    public void testObtenerReservaPorId_Returns200() throws Exception {
+        ReservaResponseDTO mockResponse = new ReservaResponseDTO();
+        mockResponse.setIdReserva(99);
+        mockResponse.setEstado("confirmada");
+        mockResponse.setCostoTotal(new java.math.BigDecimal("250.00"));
+
+        Mockito.when(reservaService.obtenerPorId(99)).thenReturn(mockResponse);
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/reservas/99"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idReserva").value(99))
+                .andExpect(jsonPath("$.estado").value("confirmada"))
+                .andExpect(jsonPath("$.costoTotal").value(250.00));
+    }
 }
+
