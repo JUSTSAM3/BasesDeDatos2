@@ -1,11 +1,13 @@
 package co.edu.unbosque.reservasbackend.sql.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
 @Entity
 @Table(name = "espacios")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Espacio implements Serializable {
 
     @Id
@@ -14,15 +16,17 @@ public class Espacio implements Serializable {
     private Integer idEspacio;
 
     // Muchos espacios pertenecen a una sucursal
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_sucursal", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Sucursal sucursal;
 
     @Column(name = "nombre", length = 100, nullable = false)
     private String nombre;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_tipo_espacio", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "espacios"})
     private TipoEspacio tipoEspacio;
 
     @Column(name = "capacidad", nullable = false)

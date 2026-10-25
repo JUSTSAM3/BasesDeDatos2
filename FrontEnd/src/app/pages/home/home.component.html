@@ -18,11 +18,11 @@
       <a href="#inicio">Inicio</a>
       <a href="#espacios">Espacios</a>
       <a href="#experiencias">Experiencias</a>
-      <a href="#nosotros">Nosotros</a>
+      <a routerLink="/dashboard">Dashboard BD</a>
     </nav>
 
-    <button class="nav-account">
-      Mi cuenta
+    <button class="nav-account" (click)="irADashboard()">
+      Panel de Gestión
       <span>↗</span>
     </button>
 
@@ -56,13 +56,13 @@
 
         <div class="hero-actions">
 
-          <button class="button-primary">
+          <a class="button-primary" href="#espacios" style="text-decoration: none;">
             Explorar espacios
             <span>→</span>
-          </button>
+          </a>
 
-          <button class="button-link">
-            ¿Cómo funciona?
+          <button class="button-link" (click)="abrirModalReserva()">
+            Reservar ahora
           </button>
 
         </div>
@@ -70,7 +70,7 @@
       </div>
 
 
-      <!-- BUSCADOR -->
+      <!-- BUSCADOR CONECTADO A fn_validar_disponibilidad -->
       <div class="search-card">
 
         <div class="search-card-top">
@@ -86,38 +86,68 @@
         <div class="search-fields">
 
           <div class="field">
+            <label>Espacio</label>
+            <select [(ngModel)]="busqueda.idEspacio">
+              @for (esp of espacios; track esp.idEspacio) {
+                <option [ngValue]="esp.idEspacio">{{ esp.nombre }} (Cap. {{ esp.capacidad }})</option>
+              }
+            </select>
+          </div>
+
+          <div class="field">
             <label>Fecha del evento</label>
-            <input type="date">
+            <input type="date" [(ngModel)]="busqueda.fecha">
+          </div>
+
+          <div class="field" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div>
+              <label>Hora inicio</label>
+              <input type="time" [(ngModel)]="busqueda.horaInicio">
+            </div>
+            <div>
+              <label>Hora fin</label>
+              <input type="time" [(ngModel)]="busqueda.horaFin">
+            </div>
           </div>
 
           <div class="field">
             <label>Número de invitados</label>
 
             <div class="input-with-icon">
-              <input type="number" placeholder="Ej. 80">
+              <input type="number" [(ngModel)]="busqueda.invitados" placeholder="Ej. 80">
               <span>personas</span>
             </div>
           </div>
 
-          <div class="field">
-            <label>Tipo de evento</label>
-
-            <select>
-              <option value="">Seleccionar</option>
-              <option>Celebración</option>
-              <option>Evento corporativo</option>
-              <option>Conferencia</option>
-              <option>Boda</option>
-              <option>Reunión privada</option>
-            </select>
-          </div>
-
         </div>
 
-        <button class="search-button">
-          Buscar disponibilidad
+        <button class="search-button" (click)="verificarDisponibilidad()" [disabled]="consultandoDisponibilidad">
+          {{ consultandoDisponibilidad ? 'Validando en BD...' : 'Buscar disponibilidad' }}
           <span>↗</span>
         </button>
+
+        @if (resultadoDisponibilidad) {
+          <div style="margin-top: 1rem; padding: 0.85rem; border-radius: 10px; font-size: 0.9rem;"
+               [style.background]="resultadoDisponibilidad.disponible ? '#e6f4ea' : '#fce8e6'"
+               [style.color]="resultadoDisponibilidad.disponible ? '#137333' : '#c5221f'">
+            <strong>{{ resultadoDisponibilidad.disponible ? '✓ Disponible:' : '✕ No disponible:' }}</strong>
+            {{ resultadoDisponibilidad.mensaje }}
+            @if (resultadoDisponibilidad.disponible) {
+              <div style="margin-top: 0.5rem;">
+                <button type="button" (click)="abrirModalReserva()"
+                        style="background: #137333; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;">
+                  Crear reserva en este horario →
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        @if (errorDisponibilidad) {
+          <div style="margin-top: 1rem; padding: 0.85rem; border-radius: 10px; background: #fce8e6; color: #c5221f; font-size: 0.9rem;">
+            {{ errorDisponibilidad }}
+          </div>
+        }
 
       </div>
 
@@ -169,10 +199,10 @@
     </section>
 
 
-    <!-- ESPACIOS -->
+    <!-- ESPACIOS DESDE POSTGRESQL -->
     <section class="spaces" id="espacios">
 
-      @for (espacio of espacios; track espacio.nombre) {
+      @for (espacio of espacios; track espacio.idEspacio) {
 
         <article class="space-card">
 
@@ -191,7 +221,7 @@
               <span>{{ espacio.nombre }}</span>
             </div>
 
-            <button class="circle-button">
+            <button class="circle-button" (click)="abrirModalReserva(espacio)" title="Reservar este espacio">
               ↗
             </button>
 
@@ -233,14 +263,14 @@
 
 
     <div class="center-action">
-      <button class="outline-button">
-        Ver todos los espacios
+      <button class="outline-button" (click)="irADashboard()">
+        Gestionar espacios y reservas
         <span>→</span>
       </button>
     </div>
 
 
-    <!-- EXPERIENCE -->
+    <!-- EXPERIENCE (SERVICIOS ADICIONALES DESDE BD) -->
     <section class="experience" id="experiencias">
 
       <div class="experience-top">
@@ -270,9 +300,9 @@
 
       <div class="services-list">
 
-        @for (servicio of servicios; track servicio.numero) {
+        @for (servicio of servicios; track servicio.idServicio) {
 
-          <article class="service-row">
+          <article class="service-row" (click)="abrirModalReserva()">
 
             <span class="service-number">
               {{ servicio.numero }}
@@ -284,6 +314,9 @@
 
             <p>
               {{ servicio.descripcion }}
+              @if (servicio.precioUnitario) {
+                <strong> (${{ servicio.precioUnitario | number }} c/u)</strong>
+              }
             </p>
 
             <span class="service-arrow">
@@ -409,8 +442,8 @@
           para adaptarse a distintos tipos de experiencias.
         </p>
 
-        <button class="button-dark">
-          Conoce nuestra sede
+        <button class="button-dark" (click)="irADashboard()">
+          Ir al Dashboard
           <span>→</span>
         </button>
 
@@ -429,7 +462,7 @@
         <em>suceda.</em>
       </h2>
 
-      <button>
+      <button (click)="abrirModalReserva()">
         Reservar mi espacio
         <span>↗</span>
       </button>
@@ -440,6 +473,96 @@
     </section>
 
   </main>
+
+  <!-- MODAL DE CREACIÓN DE RESERVA (SP_CREAR_RESERVA) -->
+  @if (mostrarModalReserva) {
+    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
+      <div style="background: #fff; color: #1a1a1a; border-radius: 16px; max-width: 520px; width: 100%; padding: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+          <h3 style="margin: 0; font-size: 1.4rem;">Confirmar Reserva (PostgreSQL)</h3>
+          <button (click)="cerrarModalReserva()" style="background: none; border: none; font-size: 1.4rem; cursor: pointer;">✕</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.9rem;">
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Cliente</label>
+            @if (clientes.length > 0) {
+              <select [(ngModel)]="nuevaReserva.idCliente" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+                @for (c of clientes; track c.idCliente) {
+                  <option [ngValue]="c.idCliente">{{ c.nombreRazonSocial }} ({{ c.identificacion }})</option>
+                }
+              </select>
+            } @else {
+              <input type="number" [(ngModel)]="nuevaReserva.idCliente" placeholder="ID Cliente (ej. 1)" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+            }
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Espacio</label>
+            <select [(ngModel)]="nuevaReserva.idEspacio" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+              @for (esp of espacios; track esp.idEspacio) {
+                <option [ngValue]="esp.idEspacio">{{ esp.nombre }} - {{ esp.precio }}/h</option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Fecha del evento</label>
+            <input type="date" [(ngModel)]="nuevaReserva.fecha" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div>
+              <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Hora Inicio (08:00 - 22:00)</label>
+              <input type="time" [(ngModel)]="nuevaReserva.horaInicio" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Hora Fin (08:00 - 22:00)</label>
+              <input type="time" [(ngModel)]="nuevaReserva.horaFin" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem;">
+            <div>
+              <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Servicio Adicional (Opcional)</label>
+              <select [(ngModel)]="nuevaReserva.idServicio" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+                <option [ngValue]="0">-- Ninguno --</option>
+                @for (srv of servicios; track srv.idServicio) {
+                  <option [ngValue]="srv.idServicio">{{ srv.nombre }}</option>
+                }
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem;">Cantidad</label>
+              <input type="number" min="1" [(ngModel)]="nuevaReserva.cantidadServicio" style="width: 100%; padding: 0.65rem; border: 1px solid #ccc; border-radius: 8px;">
+            </div>
+          </div>
+
+          @if (mensajeReservaExito) {
+            <div style="padding: 0.75rem; border-radius: 8px; background: #e6f4ea; color: #137333; font-size: 0.9rem;">
+              {{ mensajeReservaExito }}
+            </div>
+          }
+
+          @if (mensajeReservaError) {
+            <div style="padding: 0.75rem; border-radius: 8px; background: #fce8e6; color: #c5221f; font-size: 0.9rem;">
+              {{ mensajeReservaError }}
+            </div>
+          }
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+            <button type="button" (click)="cerrarModalReserva()" style="padding: 0.65rem 1.2rem; border-radius: 8px; border: 1px solid #ccc; background: #fff; cursor: pointer;">
+              Cerrar
+            </button>
+            <button type="button" (click)="confirmarReserva()" [disabled]="creandoReserva"
+                    style="padding: 0.65rem 1.4rem; border-radius: 8px; border: none; background: #111; color: #fff; font-weight: 600; cursor: pointer;">
+              {{ creandoReserva ? 'Procesando SP...' : 'Confirmar Reserva' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 
 
   <!-- FOOTER -->
@@ -463,22 +586,21 @@
 
       <div>
         <span>EXPLORA</span>
-        <a href="#">Inicio</a>
-        <a href="#">Espacios</a>
-        <a href="#">Servicios</a>
+        <a href="#inicio">Inicio</a>
+        <a href="#espacios">Espacios</a>
+        <a href="#experiencias">Servicios</a>
       </div>
 
       <div>
-        <span>AYUDA</span>
-        <a href="#">Mis reservas</a>
-        <a href="#">Contacto</a>
-        <a href="#">Preguntas frecuentes</a>
+        <span>GESTIÓN</span>
+        <a routerLink="/dashboard">Dashboard y Reservas</a>
+        <a (click)="abrirModalReserva()" style="cursor: pointer;">Nueva Reserva</a>
       </div>
 
       <div>
         <span>VISÍTANOS</span>
         <p>Bogotá, Colombia</p>
-        <p>Lun — Dom</p>
+        <p>Lun — Dom (08:00 - 22:00)</p>
       </div>
 
     </div>
