@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import {
   BackendService,
   Cliente,
@@ -99,63 +100,48 @@ export class DashboardComponent implements OnInit {
   }
 
   cargarTodo(): void {
-    this.backendService.listarClientes().subscribe({
-      next: (data) => {
-        this.clientes = data || [];
+    forkJoin({
+      clientes: this.backendService.listarClientes(),
+      espacios: this.backendService.listarEspacios(),
+      empleados: this.backendService.listarEmpleados(),
+      sucursales: this.backendService.listarSucursales(),
+      tiposEspacio: this.backendService.listarTiposEspacio(),
+      servicios: this.backendService.listarServiciosAdicionales()
+    }).subscribe({
+      next: (res) => {
+        this.clientes = res.clientes || [];
         if (this.clientes.length > 0 && this.clientes[0].idCliente) {
           this.formReserva.idCliente = this.clientes[0].idCliente;
         }
-        this.actualizarMetricas();
-        this.cargarReservas();
-      },
-      error: () => this.cargarReservas()
-    });
 
-    this.backendService.listarEspacios().subscribe({
-      next: (data) => {
-        this.espacios = data || [];
+        this.espacios = res.espacios || [];
         if (this.espacios.length > 0 && this.espacios[0].idEspacio) {
           this.formReserva.idEspacio = this.espacios[0].idEspacio;
         }
-        this.actualizarMetricas();
-        this.cargarReservas();
-      },
-      error: () => {}
-    });
 
-    this.backendService.listarEmpleados().subscribe({
-      next: (data) => {
-        this.empleados = data || [];
+        this.empleados = res.empleados || [];
         if (this.empleados.length > 0 && this.empleados[0].idEmpleado) {
           this.formReserva.idEmpleado = this.empleados[0].idEmpleado;
         }
-      },
-      error: () => {}
-    });
 
-    this.backendService.listarSucursales().subscribe({
-      next: (data) => {
-        this.sucursales = data || [];
+        this.sucursales = res.sucursales || [];
         if (this.sucursales.length > 0 && this.sucursales[0].idSucursal) {
           this.formEspacio.idSucursal = this.sucursales[0].idSucursal;
         }
-      },
-      error: () => {}
-    });
 
-    this.backendService.listarTiposEspacio().subscribe({
-      next: (data) => {
-        this.tiposEspacio = data || [];
+        this.tiposEspacio = res.tiposEspacio || [];
         if (this.tiposEspacio.length > 0 && this.tiposEspacio[0].idTipoEspacio) {
           this.formEspacio.idTipoEspacio = this.tiposEspacio[0].idTipoEspacio;
         }
-      },
-      error: () => {}
-    });
 
-    this.backendService.listarServiciosAdicionales().subscribe({
-      next: (data) => (this.servicios = data || []),
-      error: () => {}
+        this.servicios = res.servicios || [];
+
+        this.actualizarMetricas();
+        this.cargarReservas();
+      },
+      error: () => {
+        this.cargarReservas();
+      }
     });
   }
 
@@ -178,15 +164,9 @@ export class DashboardComponent implements OnInit {
                 ? `${fechaObj.toTimeString().slice(0, 5)} - ${finObj.toTimeString().slice(0, 5)}`
                 : '',
             costoTotal: Number(r.costoTotal || 0),
-            estado: r.estado ? r.estado.charAt(0).toUpperCase() + r.estado.slice(1).toLowerCase() : 'Pendiente'
+            estado: r.estado ? r.estado.charAt(0).toUpperCase() + r.estado.slice(1).toLowerCase() : 'Pendiente',
+            estadoPago: r.estadoPago || 'pendiente'
           };
-        });
-
-        this.reservas.forEach((item) => {
-          this.backendService.consultarEstadoPago(item.idReserva).subscribe({
-            next: (res) => (item.estadoPago = res.estadoPago),
-            error: () => {}
-          });
         });
 
         this.actualizarMetricas();
@@ -263,6 +243,9 @@ export class DashboardComponent implements OnInit {
   }
 
   cancelarReserva(idReserva: number): void {
+    if (!confirm(`¿Estás seguro de que deseas cancelar la reserva #${idReserva}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
     this.backendService.cancelarReserva(idReserva).subscribe({
       next: (res) => {
         this.mostrarMensaje(res.mensaje || `Reserva #${idReserva} cancelada.`);

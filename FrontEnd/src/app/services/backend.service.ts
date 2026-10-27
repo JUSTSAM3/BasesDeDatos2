@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Sucursal {
   idSucursal?: number;
@@ -18,8 +19,12 @@ export interface TipoEspacio {
 
 export interface Espacio {
   idEspacio?: number;
-  sucursal?: Sucursal;
   nombre: string;
+  idSucursal?: number;
+  nombreSucursal?: string;
+  sucursal?: Sucursal;
+  idTipoEspacio?: number;
+  nombreTipoEspacio?: string;
   tipoEspacio?: TipoEspacio;
   capacidad: number;
   tarifaPorHora: number;
@@ -82,6 +87,7 @@ export interface ReservaResponseDTO {
   fechaFin: string;
   estado: string;
   costoTotal: number;
+  estadoPago?: string;
 }
 
 export interface DisponibilidadResponseDTO {
@@ -117,7 +123,7 @@ export interface PagoResponseDTO {
 })
 export class BackendService {
 
-  private apiUrl = 'http://localhost:8080/api';
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

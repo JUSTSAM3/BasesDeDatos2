@@ -2,11 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { BackendService, ReservaRequestDTO, PagoRequestDTO } from './backend.service';
+import { environment } from '../../environments/environment';
 
 describe('BackendService (Relacional)', () => {
   let service: BackendService;
   let httpMock: HttpTestingController;
-  const apiUrl = 'http://localhost:8080/api';
+  const apiUrl = environment.apiUrl;
 
   beforeEach(() => {
     TestBed.configureTestingModule({

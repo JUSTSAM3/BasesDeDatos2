@@ -2,7 +2,6 @@ package co.edu.unbosque.reservasbackend.controller;
 
 import co.edu.unbosque.reservasbackend.sql.entity.Empleado;
 import co.edu.unbosque.reservasbackend.sql.service.EmpleadoService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,11 +9,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/empleados")
-@CrossOrigin(origins = "*")
 public class EmpleadoController {
 
-    @Autowired
-    private EmpleadoService empleadoService;
+    private final EmpleadoService empleadoService;
+
+    public EmpleadoController(EmpleadoService empleadoService) {
+        this.empleadoService = empleadoService;
+    }
 
     @PostMapping("/crear")
     public ResponseEntity<Empleado> crearEmpleado(@RequestBody Empleado empleado) {

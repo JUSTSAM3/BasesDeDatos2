@@ -39,68 +39,11 @@ export interface ServicioCard {
 })
 export class HomeComponent implements OnInit {
 
-  espacios: EspacioCard[] = [
-    {
-      idEspacio: 1,
-      nombre: 'Salón Aura',
-      tipo: 'Eventos sociales',
-      capacidad: 120,
-      tarifaPorHora: 250000,
-      precio: '$250.000',
-      estilo: 'aura'
-    },
-    {
-      idEspacio: 2,
-      nombre: 'Terraza Nómada',
-      tipo: 'Eventos al aire libre',
-      capacidad: 80,
-      tarifaPorHora: 190000,
-      precio: '$190.000',
-      estilo: 'nomada'
-    },
-    {
-      idEspacio: 3,
-      nombre: 'Studio 74',
-      tipo: 'Eventos privados',
-      capacidad: 40,
-      tarifaPorHora: 130000,
-      precio: '$130.000',
-      estilo: 'studio'
-    }
-  ];
+  espacios: EspacioCard[] = [];
+  cargandoEspacios = true;
+  errorCargaEspacios = false;
 
-  servicios: ServicioCard[] = [
-    {
-      idServicio: 1,
-      numero: '01',
-      nombre: 'Catering',
-      descripcion: 'Opciones gastronómicas para acompañar cada tipo de evento.',
-      precioUnitario: 45000
-    },
-    {
-      idServicio: 2,
-      numero: '02',
-      nombre: 'Decoración',
-      descripcion: 'Ambientación pensada para transformar completamente el espacio.',
-      precioUnitario: 120000
-    },
-    {
-      idServicio: 3,
-      numero: '03',
-      nombre: 'Sonido',
-      descripcion: 'Equipos y soluciones para música, presentaciones y celebraciones.',
-      precioUnitario: 95000
-    },
-    {
-      idServicio: 4,
-      numero: '04',
-      nombre: 'Producción',
-      descripcion: 'Apoyo para organizar los detalles técnicos de tu experiencia.',
-      precioUnitario: 150000
-    }
-  ];
-
-  clientes: Cliente[] = [];
+  servicios: ServicioCard[] = [];
 
   // Formulario de disponibilidad (RF-05: fn_validar_disponibilidad)
   busqueda = {
@@ -108,7 +51,7 @@ export class HomeComponent implements OnInit {
     fecha: '',
     horaInicio: '10:00',
     horaFin: '14:00',
-    invitados: 80,
+    invitados: 50,
     tipoEvento: ''
   };
 
@@ -122,10 +65,19 @@ export class HomeComponent implements OnInit {
   mensajeReservaExito = '';
   mensajeReservaError = '';
 
+  modoCliente: 'nuevo' | 'registrado' = 'nuevo';
+
   nuevaReserva = {
-    idCliente: 1,
+    idCliente: null as number | null,
+    nuevoCliente: {
+      tipoCliente: 'natural',
+      identificacion: '',
+      nombreRazonSocial: '',
+      email: '',
+      telefono: ''
+    },
     idEspacio: 1,
-    idEmpleado: 1,
+    idEmpleado: null as number | null,
     fecha: '',
     horaInicio: '10:00',
     horaFin: '14:00',
@@ -142,27 +94,44 @@ export class HomeComponent implements OnInit {
     this.cargarDatosRelacionales();
   }
 
+  get espaciosFiltrados(): EspacioCard[] {
+    return this.espacios.filter((e) => {
+      const cumpleCapacidad = !this.busqueda.invitados || e.capacidad >= Number(this.busqueda.invitados);
+      const cumpleTipo = !this.busqueda.tipoEvento || e.tipo.toLowerCase().includes(this.busqueda.tipoEvento.toLowerCase());
+      return cumpleCapacidad && cumpleTipo;
+    });
+  }
+
   cargarDatosRelacionales(): void {
     const estilos = ['aura', 'nomada', 'studio'];
+    this.cargandoEspacios = true;
+    this.errorCargaEspacios = false;
 
     this.backendService.listarEspacios().subscribe({
       next: (data: Espacio[]) => {
+        this.cargandoEspacios = false;
         if (data && data.length > 0) {
           this.espacios = data.map((e, idx) => ({
             idEspacio: e.idEspacio ?? idx + 1,
             nombre: e.nombre,
-            tipo: e.tipoEspacio?.nombre || 'Espacio para eventos',
+            tipo: e.nombreTipoEspacio || e.tipoEspacio?.nombre || 'Espacio para eventos',
             capacidad: e.capacidad,
             tarifaPorHora: e.tarifaPorHora,
             precio: '$' + Number(e.tarifaPorHora).toLocaleString('es-CO'),
             estilo: estilos[idx % estilos.length]
           }));
-          this.busqueda.idEspacio = this.espacios[0].idEspacio;
-          this.nuevaReserva.idEspacio = this.espacios[0].idEspacio;
+          if (this.espacios.length > 0) {
+            this.busqueda.idEspacio = this.espacios[0].idEspacio;
+            this.nuevaReserva.idEspacio = this.espacios[0].idEspacio;
+          }
+        } else {
+          this.espacios = [];
         }
       },
       error: () => {
-        // Mantiene datos de respaldo si el backend aún no está levantado
+        this.cargandoEspacios = false;
+        this.errorCargaEspacios = true;
+        this.espacios = [];
       }
     });
 
@@ -176,16 +145,6 @@ export class HomeComponent implements OnInit {
             descripcion: s.descripcion || 'Servicio complementario para tu evento.',
             precioUnitario: s.precioUnitario
           }));
-        }
-      },
-      error: () => {}
-    });
-
-    this.backendService.listarClientes().subscribe({
-      next: (data: Cliente[]) => {
-        this.clientes = data || [];
-        if (this.clientes.length > 0 && this.clientes[0].idCliente) {
-          this.nuevaReserva.idCliente = this.clientes[0].idCliente;
         }
       },
       error: () => {}
@@ -246,14 +205,41 @@ export class HomeComponent implements OnInit {
     this.mensajeReservaError = '';
 
     if (!this.nuevaReserva.fecha) {
-      this.mensajeReservaError = 'Debes seleccionar una fecha válida.';
+      this.mensajeReservaError = 'Debes seleccionar una fecha válida para la reserva.';
       return;
     }
 
+    if (this.modoCliente === 'nuevo') {
+      if (!this.nuevaReserva.nuevoCliente.identificacion || !this.nuevaReserva.nuevoCliente.nombreRazonSocial) {
+        this.mensajeReservaError = 'Por favor ingresa tu nombre y número de documento / identificación.';
+        return;
+      }
+
+      this.creandoReserva = true;
+      this.backendService.crearCliente(this.nuevaReserva.nuevoCliente).subscribe({
+        next: (cli) => {
+          this.ejecutarCreacionReserva(cli.idCliente!);
+        },
+        error: (err) => {
+          this.creandoReserva = false;
+          this.mensajeReservaError = err.error?.message || 'No se pudo registrar el cliente. Verifica los datos.';
+        }
+      });
+    } else {
+      if (!this.nuevaReserva.idCliente) {
+        this.mensajeReservaError = 'Por favor ingresa tu número o ID de cliente registrado.';
+        return;
+      }
+      this.creandoReserva = true;
+      this.ejecutarCreacionReserva(Number(this.nuevaReserva.idCliente));
+    }
+  }
+
+  private ejecutarCreacionReserva(idCliente: number): void {
     const payload: ReservaRequestDTO = {
-      idCliente: Number(this.nuevaReserva.idCliente),
+      idCliente: idCliente,
       idEspacio: Number(this.nuevaReserva.idEspacio),
-      idEmpleado: this.nuevaReserva.idEmpleado ? Number(this.nuevaReserva.idEmpleado) : null,
+      idEmpleado: null, // Nullable en BD (V4) para asignación automática por backend
       fechaInicio: `${this.nuevaReserva.fecha}T${this.nuevaReserva.horaInicio}:00`,
       fechaFin: `${this.nuevaReserva.fecha}T${this.nuevaReserva.horaFin}:00`,
       servicios: Number(this.nuevaReserva.idServicio) > 0
@@ -261,11 +247,10 @@ export class HomeComponent implements OnInit {
         : []
     };
 
-    this.creandoReserva = true;
     this.backendService.crearReserva(payload).subscribe({
       next: (res: ReservaResponseDTO) => {
         this.creandoReserva = false;
-        this.mensajeReservaExito = `¡Reserva #${res.idReserva} creada! Estado: ${res.estado} | Costo Total: $${Number(res.costoTotal).toLocaleString('es-CO')}`;
+        this.mensajeReservaExito = `¡Reserva #${res.idReserva} creada con éxito! Estado: ${res.estado} | Costo Total: $${Number(res.costoTotal).toLocaleString('es-CO')}`;
       },
       error: (err) => {
         this.creandoReserva = false;

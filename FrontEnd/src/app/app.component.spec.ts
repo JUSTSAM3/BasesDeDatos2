@@ -15,10 +15,11 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', async () => {
+  it('should render router outlet', async () => {
     const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, FrontEndTicket');
+    expect(compiled.querySelector('router-outlet')).not.toBeNull();
   });
 });

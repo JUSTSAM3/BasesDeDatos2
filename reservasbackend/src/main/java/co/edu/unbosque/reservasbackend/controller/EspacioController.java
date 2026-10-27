@@ -1,13 +1,11 @@
 package co.edu.unbosque.reservasbackend.controller;
 
 import co.edu.unbosque.reservasbackend.dto.EspacioRequestDTO;
-import co.edu.unbosque.reservasbackend.sql.entity.Espacio;
-import co.edu.unbosque.reservasbackend.sql.entity.ServicioAdicional;
-import co.edu.unbosque.reservasbackend.sql.entity.TipoEspacio;
-import co.edu.unbosque.reservasbackend.sql.repository.ServicioAdicionalRepository;
-import co.edu.unbosque.reservasbackend.sql.repository.TipoEspacioRepository;
+import co.edu.unbosque.reservasbackend.dto.EspacioResponseDTO;
+import co.edu.unbosque.reservasbackend.dto.ServicioAdicionalResponseDTO;
+import co.edu.unbosque.reservasbackend.dto.TipoEspacioResponseDTO;
 import co.edu.unbosque.reservasbackend.sql.service.EspacioService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,35 +13,31 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/espacios")
-@CrossOrigin(origins = "*")
 public class EspacioController {
 
-    @Autowired
-    private EspacioService espacioService;
+    private final EspacioService espacioService;
 
-    @Autowired
-    private TipoEspacioRepository tipoEspacioRepository;
-
-    @Autowired
-    private ServicioAdicionalRepository servicioAdicionalRepository;
+    public EspacioController(EspacioService espacioService) {
+        this.espacioService = espacioService;
+    }
 
     @PostMapping("/crear")
-    public ResponseEntity<Espacio> crearEspacio(@RequestBody EspacioRequestDTO dto) {
-        return ResponseEntity.ok(espacioService.crearEspacio(dto));
+    public ResponseEntity<EspacioResponseDTO> crearEspacio(@RequestBody EspacioRequestDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(espacioService.crearEspacio(dto));
     }
 
     @GetMapping("/listar")
-    public ResponseEntity<List<Espacio>> listarEspacios() {
+    public ResponseEntity<List<EspacioResponseDTO>> listarEspacios() {
         return ResponseEntity.ok(espacioService.obtenerTodos());
     }
 
     @GetMapping("/tipos")
-    public ResponseEntity<List<TipoEspacio>> listarTiposEspacio() {
-        return ResponseEntity.ok(tipoEspacioRepository.findAll());
+    public ResponseEntity<List<TipoEspacioResponseDTO>> listarTiposEspacio() {
+        return ResponseEntity.ok(espacioService.listarTipos());
     }
 
     @GetMapping("/servicios")
-    public ResponseEntity<List<ServicioAdicional>> listarServiciosAdicionales() {
-        return ResponseEntity.ok(servicioAdicionalRepository.findAll());
+    public ResponseEntity<List<ServicioAdicionalResponseDTO>> listarServiciosAdicionales() {
+        return ResponseEntity.ok(espacioService.listarServicios());
     }
 }

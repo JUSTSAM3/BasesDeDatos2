@@ -1,14 +1,11 @@
 package co.edu.unbosque.reservasbackend.sql.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.List;
 
 @Entity
 @Table(name = "tipos_espacio")
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class TipoEspacio implements Serializable {
 
     @Id
@@ -22,7 +19,6 @@ public class TipoEspacio implements Serializable {
     @Column(name = "descripcion", columnDefinition = "TEXT")
     private String descripcion;
 
-    @JsonIgnore
     @OneToMany(mappedBy = "tipoEspacio", fetch = FetchType.LAZY)
     private List<Espacio> espacios;
 
