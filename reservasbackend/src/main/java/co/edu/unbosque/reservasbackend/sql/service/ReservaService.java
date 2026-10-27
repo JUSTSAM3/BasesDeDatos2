@@ -63,8 +63,8 @@ public class ReservaService {
                 jsonServicios
         );
 
-        // Consultar el estado final y el costo total después de los triggers
-        String selectSql = "SELECT estado, costo_total FROM reservas WHERE id_reserva = ?";
+        // Consultar el estado final, costo total y estado de pago después de los triggers
+        String selectSql = "SELECT estado, costo_total, fn_estado_pago(id_reserva) AS estado_pago FROM reservas WHERE id_reserva = ?";
         Map<String, Object> result = jdbcTemplate.queryForMap(selectSql, idReserva);
 
         ReservaResponseDTO response = new ReservaResponseDTO();
@@ -75,6 +75,7 @@ public class ReservaService {
         response.setFechaInicio(dto.getFechaInicio());
         response.setFechaFin(dto.getFechaFin());
         response.setEstado((String) result.get("estado"));
+        response.setEstadoPago((String) result.get("estado_pago"));
 
         Object costoObj = result.get("costo_total");
         if (costoObj instanceof Number) {
@@ -125,7 +126,7 @@ public class ReservaService {
      * Consulta una reserva específica por su identificador único.
      */
     public ReservaResponseDTO obtenerPorId(Integer idReserva) {
-        String sql = "SELECT id_reserva, id_cliente, id_espacio, id_empleado, fecha_reserva, fecha_inicio, fecha_fin, estado, costo_total FROM reservas WHERE id_reserva = ?";
+        String sql = "SELECT id_reserva, id_cliente, id_espacio, id_empleado, fecha_reserva, fecha_inicio, fecha_fin, estado, costo_total, fn_estado_pago(id_reserva) AS estado_pago FROM reservas WHERE id_reserva = ?";
         Map<String, Object> row = jdbcTemplate.queryForMap(sql, idReserva);
         return mapRowToReservaDTO(row);
     }
@@ -134,7 +135,7 @@ public class ReservaService {
      * Lista todas las reservas registradas en el sistema.
      */
     public List<ReservaResponseDTO> obtenerTodas() {
-        String sql = "SELECT id_reserva, id_cliente, id_espacio, id_empleado, fecha_reserva, fecha_inicio, fecha_fin, estado, costo_total FROM reservas ORDER BY id_reserva DESC";
+        String sql = "SELECT id_reserva, id_cliente, id_espacio, id_empleado, fecha_reserva, fecha_inicio, fecha_fin, estado, costo_total, fn_estado_pago(id_reserva) AS estado_pago FROM reservas ORDER BY id_reserva DESC";
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
         List<ReservaResponseDTO> list = new ArrayList<>();
         for (Map<String, Object> row : rows) {
@@ -163,6 +164,7 @@ public class ReservaService {
         else if (ff instanceof LocalDateTime ldt) dto.setFechaFin(ldt);
 
         dto.setEstado((String) row.get("estado"));
+        dto.setEstadoPago((String) row.get("estado_pago"));
 
         Object c = row.get("costo_total");
         if (c instanceof Number) {

@@ -13,6 +13,7 @@ public class ReservaResponseDTO {
     private LocalDateTime fechaFin;
     private String estado;
     private BigDecimal costoTotal;
+    private String estadoPago;
 
     public ReservaResponseDTO() {
     }
@@ -43,4 +44,7 @@ public class ReservaResponseDTO {
 
     public BigDecimal getCostoTotal() { return costoTotal; }
     public void setCostoTotal(BigDecimal costoTotal) { this.costoTotal = costoTotal; }
+
+    public String getEstadoPago() { return estadoPago; }
+    public void setEstadoPago(String estadoPago) { this.estadoPago = estadoPago; }
 }

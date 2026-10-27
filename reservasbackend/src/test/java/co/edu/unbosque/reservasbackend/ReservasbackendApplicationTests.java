@@ -1,21 +1,21 @@
 package co.edu.unbosque.reservasbackend;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import javax.sql.DataSource;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+		"spring.flyway.enabled=false",
+		"spring.jpa.hibernate.ddl-auto=none"
+})
 class ReservasbackendApplicationTests {
 
-	@Autowired
+	@MockitoBean
 	private DataSource dataSource;
 
 	@Test
 	void contextLoads() {
 	}
-
 }

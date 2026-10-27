@@ -1,30 +1,28 @@
 <div class="dashboard">
 
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
+  <div class="dashboard-top-bar">
+    <div class="dashboard-title-group">
       <h1>Dashboard Relacional (PostgreSQL)</h1>
       <p class="subtitulo">
         Gestión transaccional de reservas, pagos, espacios y clientes
       </p>
     </div>
 
-    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
-      <a routerLink="/" style="padding: 0.6rem 1rem; border-radius: 8px; border: 1px solid #cbd5e1; text-decoration: none; color: #1e293b; font-weight: 600;">
+    <div class="dashboard-header-actions">
+      <a routerLink="/" class="btn-back-home">
         ← Volver al Inicio
       </a>
-      <button type="button" (click)="abrirModal('cliente')" style="padding: 0.6rem 1rem; border-radius: 8px; border: none; background: #334155; color: #fff; cursor: pointer;">
+      <button type="button" class="btn-new-client" (click)="abrirModal('cliente')">
         + Nuevo Cliente
       </button>
-      <button type="button" (click)="abrirModal('espacio')" style="padding: 0.6rem 1rem; border-radius: 8px; border: none; background: #0f766e; color: #fff; cursor: pointer;">
+      <button type="button" class="btn-new-space" (click)="abrirModal('espacio')">
         + Nuevo Espacio
       </button>
     </div>
   </div>
 
   @if (mensajeAlerta) {
-    <div style="margin: 1rem 0; padding: 0.9rem 1.2rem; border-radius: 10px; font-weight: 500;"
-         [style.background]="esError ? '#fee2e2' : '#dcfce7'"
-         [style.color]="esError ? '#991b1b' : '#166534'">
+    <div class="alert-banner" [class.error]="esError" [class.success]="!esError">
       {{ mensajeAlerta }}
     </div>
   }
@@ -42,7 +40,7 @@
 
     <div class="tabla-header">
       <h2>Reservas registradas</h2>
-      <button type="button" (click)="abrirModal('reserva')">+ Nueva reserva</button>
+      <button type="button" class="btn-nueva-reserva" (click)="abrirModal('reserva')">+ Nueva reserva</button>
     </div>
 
     <table>
@@ -63,7 +61,7 @@
       <tbody>
         @if (reservas.length === 0) {
           <tr>
-            <td colspan="9" style="text-align: center; padding: 2rem; color: #64748b;">
+            <td colspan="9" class="empty-table-cell">
               No hay reservas registradas aún o el servidor backend no está en ejecución.
             </td>
           </tr>
@@ -83,26 +81,25 @@
                 class="estado"
                 [class.confirmada]="reserva.estado.toLowerCase() === 'confirmada'"
                 [class.pendiente]="reserva.estado.toLowerCase() === 'pendiente'"
+                [class.cancelada]="reserva.estado.toLowerCase() === 'cancelada'"
               >
                 {{ reserva.estado }}
               </span>
             </td>
 
             <td>
-              <small style="font-weight: 600; color: #475569;">
+              <small class="payment-status-badge">
                 {{ reserva.estadoPago || 'Pendiente' }}
               </small>
             </td>
 
             <td>
-              <div style="display: flex; gap: 0.4rem;">
+              <div class="actions-cell">
                 @if (reserva.estado.toLowerCase() !== 'cancelada') {
-                  <button type="button" (click)="abrirModal('pago', reserva)"
-                          style="padding: 0.35rem 0.65rem; border-radius: 6px; border: none; background: #2563eb; color: #fff; font-size: 0.8rem; cursor: pointer;">
+                  <button type="button" class="btn-table-pay" (click)="abrirModal('pago', reserva)">
                     Pagar
                   </button>
-                  <button type="button" (click)="cancelarReserva(reserva.idReserva)"
-                          style="padding: 0.35rem 0.65rem; border-radius: 6px; border: none; background: #dc2626; color: #fff; font-size: 0.8rem; cursor: pointer;">
+                  <button type="button" class="btn-table-cancel" (click)="cancelarReserva(reserva.idReserva)">
                     Cancelar
                   </button>
                 }
@@ -117,73 +114,73 @@
 
   <!-- MODAL NUEVA RESERVA -->
   @if (modalActivo === 'reserva') {
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-      <div style="background: #fff; border-radius: 14px; max-width: 480px; width: 100%; padding: 1.75rem;">
-        <h3 style="margin-top: 0;">Nueva Reserva (SP_CREAR_RESERVA)</h3>
+    <div class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <h3>Nueva Reserva (SP_CREAR_RESERVA)</h3>
 
-        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Cliente</label>
-            <select [(ngModel)]="formReserva.idCliente" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <div class="modal-form">
+          <div class="form-group">
+            <label>Cliente</label>
+            <select [(ngModel)]="formReserva.idCliente">
               @for (c of clientes; track c.idCliente) {
                 <option [ngValue]="c.idCliente">{{ c.nombreRazonSocial }} ({{ c.identificacion }})</option>
               }
             </select>
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Espacio</label>
-            <select [(ngModel)]="formReserva.idEspacio" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Espacio</label>
+            <select [(ngModel)]="formReserva.idEspacio">
               @for (e of espacios; track e.idEspacio) {
                 <option [ngValue]="e.idEspacio">{{ e.nombre }} - ${{ e.tarifaPorHora | number }}/h</option>
               }
             </select>
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Empleado responsable</label>
-            <select [(ngModel)]="formReserva.idEmpleado" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Empleado responsable</label>
+            <select [(ngModel)]="formReserva.idEmpleado">
               @for (emp of empleados; track emp.idEmpleado) {
                 <option [ngValue]="emp.idEmpleado">{{ emp.nombre }} ({{ emp.cargo }})</option>
               }
             </select>
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Fecha</label>
-            <input type="date" [(ngModel)]="formReserva.fecha" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" [(ngModel)]="formReserva.fecha">
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
-            <div>
-              <label style="display: block; font-size: 0.85rem; font-weight: 600;">Hora inicio</label>
-              <input type="time" [(ngModel)]="formReserva.horaInicio" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Hora inicio</label>
+              <input type="time" [(ngModel)]="formReserva.horaInicio">
             </div>
-            <div>
-              <label style="display: block; font-size: 0.85rem; font-weight: 600;">Hora fin</label>
-              <input type="time" [(ngModel)]="formReserva.horaFin" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+            <div class="form-group">
+              <label>Hora fin</label>
+              <input type="time" [(ngModel)]="formReserva.horaFin">
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.6rem;">
-            <div>
-              <label style="display: block; font-size: 0.85rem; font-weight: 600;">Servicio Adicional</label>
-              <select [(ngModel)]="formReserva.idServicio" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-grid-service">
+            <div class="form-group">
+              <label>Servicio Adicional</label>
+              <select [(ngModel)]="formReserva.idServicio">
                 <option [ngValue]="0">-- Ninguno --</option>
                 @for (s of servicios; track s.idServicio) {
                   <option [ngValue]="s.idServicio">{{ s.nombre }} (${{ s.precioUnitario | number }})</option>
                 }
               </select>
             </div>
-            <div>
-              <label style="display: block; font-size: 0.85rem; font-weight: 600;">Cant.</label>
-              <input type="number" min="1" [(ngModel)]="formReserva.cantidadServicio" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+            <div class="form-group">
+              <label>Cant.</label>
+              <input type="number" min="1" [(ngModel)]="formReserva.cantidadServicio">
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.8rem;">
-            <button type="button" (click)="abrirModal('ninguno')" style="padding: 0.55rem 1rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;">Cancelar</button>
-            <button type="button" (click)="guardarReserva()" style="padding: 0.55rem 1.2rem; border-radius: 6px; border: none; background: #2563eb; color: #fff; cursor: pointer;">Guardar Reserva</button>
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
+            <button type="button" class="btn-modal-primary" (click)="guardarReserva()">Guardar Reserva</button>
           </div>
         </div>
       </div>
@@ -192,28 +189,28 @@
 
   <!-- MODAL REGISTRAR PAGO -->
   @if (modalActivo === 'pago') {
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-      <div style="background: #fff; border-radius: 14px; max-width: 420px; width: 100%; padding: 1.75rem;">
-        <h3 style="margin-top: 0;">Registrar Pago - Reserva #{{ formPago.idReserva }}</h3>
+    <div class="modal-backdrop">
+      <div class="modal-box">
+        <h3>Registrar Pago - Reserva #{{ formPago.idReserva }}</h3>
 
-        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Tipo de Pago</label>
-            <select [(ngModel)]="formPago.tipoPago" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <div class="modal-form">
+          <div class="form-group">
+            <label>Tipo de Pago</label>
+            <select [(ngModel)]="formPago.tipoPago">
               <option value="anticipo">Anticipo</option>
               <option value="saldo">Saldo</option>
               <option value="total">Total</option>
             </select>
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Monto ($)</label>
-            <input type="number" [(ngModel)]="formPago.monto" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Monto ($)</label>
+            <input type="number" [(ngModel)]="formPago.monto">
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Método de Pago</label>
-            <select [(ngModel)]="formPago.metodoPago" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Método de Pago</label>
+            <select [(ngModel)]="formPago.metodoPago">
               <option value="transferencia">Transferencia</option>
               <option value="tarjeta">Tarjeta</option>
               <option value="efectivo">Efectivo</option>
@@ -221,9 +218,9 @@
             </select>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.8rem;">
-            <button type="button" (click)="abrirModal('ninguno')" style="padding: 0.55rem 1rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;">Cancelar</button>
-            <button type="button" (click)="guardarPago()" style="padding: 0.55rem 1.2rem; border-radius: 6px; border: none; background: #16a34a; color: #fff; cursor: pointer;">Confirmar Pago</button>
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
+            <button type="button" class="btn-modal-success" (click)="guardarPago()">Confirmar Pago</button>
           </div>
         </div>
       </div>
@@ -232,42 +229,42 @@
 
   <!-- MODAL NUEVO CLIENTE -->
   @if (modalActivo === 'cliente') {
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-      <div style="background: #fff; border-radius: 14px; max-width: 420px; width: 100%; padding: 1.75rem;">
-        <h3 style="margin-top: 0;">Registrar Cliente</h3>
+    <div class="modal-backdrop">
+      <div class="modal-box">
+        <h3>Registrar Cliente</h3>
 
-        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Tipo de Cliente</label>
-            <select [(ngModel)]="formCliente.tipoCliente" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <div class="modal-form">
+          <div class="form-group">
+            <label>Tipo de Cliente</label>
+            <select [(ngModel)]="formCliente.tipoCliente">
               <option value="natural">Persona Natural</option>
               <option value="juridico">Persona Jurídica</option>
             </select>
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Identificación (CC / NIT)</label>
-            <input type="text" [(ngModel)]="formCliente.identificacion" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Identificación (CC / NIT)</label>
+            <input type="text" [(ngModel)]="formCliente.identificacion">
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Nombre o Razón Social</label>
-            <input type="text" [(ngModel)]="formCliente.nombreRazonSocial" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Nombre o Razón Social</label>
+            <input type="text" [(ngModel)]="formCliente.nombreRazonSocial">
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Email</label>
-            <input type="email" [(ngModel)]="formCliente.email" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" [(ngModel)]="formCliente.email">
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Teléfono</label>
-            <input type="text" [(ngModel)]="formCliente.telefono" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="text" [(ngModel)]="formCliente.telefono">
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.8rem;">
-            <button type="button" (click)="abrirModal('ninguno')" style="padding: 0.55rem 1rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;">Cancelar</button>
-            <button type="button" (click)="guardarCliente()" style="padding: 0.55rem 1.2rem; border-radius: 6px; border: none; background: #334155; color: #fff; cursor: pointer;">Guardar Cliente</button>
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
+            <button type="button" class="btn-modal-dark" (click)="guardarCliente()">Guardar Cliente</button>
           </div>
         </div>
       </div>
@@ -276,48 +273,48 @@
 
   <!-- MODAL NUEVO ESPACIO -->
   @if (modalActivo === 'espacio') {
-    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 1rem;">
-      <div style="background: #fff; border-radius: 14px; max-width: 420px; width: 100%; padding: 1.75rem;">
-        <h3 style="margin-top: 0;">Registrar Espacio</h3>
+    <div class="modal-backdrop">
+      <div class="modal-box">
+        <h3>Registrar Espacio</h3>
 
-        <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Nombre del Espacio</label>
-            <input type="text" [(ngModel)]="formEspacio.nombre" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+        <div class="modal-form">
+          <div class="form-group">
+            <label>Nombre del Espacio</label>
+            <input type="text" [(ngModel)]="formEspacio.nombre">
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Sucursal</label>
-            <select [(ngModel)]="formEspacio.idSucursal" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Sucursal</label>
+            <select [(ngModel)]="formEspacio.idSucursal">
               @for (suc of sucursales; track suc.idSucursal) {
                 <option [ngValue]="suc.idSucursal">{{ suc.nombre }} ({{ suc.ciudad }})</option>
               }
             </select>
           </div>
 
-          <div>
-            <label style="display: block; font-size: 0.85rem; font-weight: 600;">Tipo de Espacio</label>
-            <select [(ngModel)]="formEspacio.idTipoEspacio" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-group">
+            <label>Tipo de Espacio</label>
+            <select [(ngModel)]="formEspacio.idTipoEspacio">
               @for (t of tiposEspacio; track t.idTipoEspacio) {
                 <option [ngValue]="t.idTipoEspacio">{{ t.nombre }}</option>
               }
             </select>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
-            <div>
-              <label style="display: block; font-size: 0.85rem; font-weight: 600;">Capacidad</label>
-              <input type="number" [(ngModel)]="formEspacio.capacidad" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Capacidad</label>
+              <input type="number" [(ngModel)]="formEspacio.capacidad">
             </div>
-            <div>
-              <label style="display: block; font-size: 0.85rem; font-weight: 600;">Tarifa / Hora ($)</label>
-              <input type="number" [(ngModel)]="formEspacio.tarifaPorHora" style="width: 100%; padding: 0.55rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+            <div class="form-group">
+              <label>Tarifa / Hora ($)</label>
+              <input type="number" [(ngModel)]="formEspacio.tarifaPorHora">
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.8rem;">
-            <button type="button" (click)="abrirModal('ninguno')" style="padding: 0.55rem 1rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer;">Cancelar</button>
-            <button type="button" (click)="guardarEspacio()" style="padding: 0.55rem 1.2rem; border-radius: 6px; border: none; background: #0f766e; color: #fff; cursor: pointer;">Guardar Espacio</button>
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
+            <button type="button" class="btn-modal-teal" (click)="guardarEspacio()">Guardar Espacio</button>
           </div>
         </div>
       </div>
