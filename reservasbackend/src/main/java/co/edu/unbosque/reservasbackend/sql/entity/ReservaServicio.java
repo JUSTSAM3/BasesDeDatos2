@@ -24,6 +24,9 @@ public class ReservaServicio implements Serializable {
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad;
 
+    @Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
+    private BigDecimal precioUnitario;
+
     @Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
 
@@ -31,6 +34,9 @@ public class ReservaServicio implements Serializable {
     public void prePersist() {
         if (cantidad == null) {
             cantidad = 1;
+        }
+        if (precioUnitario == null) {
+            precioUnitario = BigDecimal.ZERO;
         }
         if (subtotal == null) {
             subtotal = BigDecimal.ZERO;
@@ -51,6 +57,9 @@ public class ReservaServicio implements Serializable {
 
     public Integer getCantidad() { return cantidad; }
     public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+
+    public BigDecimal getPrecioUnitario() { return precioUnitario; }
+    public void setPrecioUnitario(BigDecimal precioUnitario) { this.precioUnitario = precioUnitario; }
 
     public BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }

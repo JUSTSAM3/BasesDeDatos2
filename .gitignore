@@ -1,1 +1,7 @@
 /Documentos
+.DS_Store
+Thumbs.db
+*.log
+.env
+
+
