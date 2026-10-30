@@ -14,8 +14,8 @@ public class Factura implements Serializable {
     @Column(name = "id_factura")
     private Integer idFactura;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_reserva", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_reserva", nullable = false, unique = true)
     private Reserva reserva;
 
     @Column(name = "numero_factura", length = 50, unique = true, nullable = false)

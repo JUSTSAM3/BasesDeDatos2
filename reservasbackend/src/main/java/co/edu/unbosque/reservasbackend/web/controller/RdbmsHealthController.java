@@ -1,16 +1,20 @@
 package co.edu.unbosque.reservasbackend.web.controller;
 
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.sql.DataSource;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,31 +73,26 @@ public class RdbmsHealthController {
         Map<String, Object> response = new HashMap<>();
         long startTime = System.currentTimeMillis();
 
-        try (Connection connection = dataSource.getConnection()) {
-            org.springframework.core.io.ClassPathResource scriptResource =
-                    new org.springframework.core.io.ClassPathResource("db/test/7.1_pruebas_rdbms.sql");
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
 
-            org.springframework.jdbc.datasource.init.ResourceDatabasePopulator populator =
-                    new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator();
-            populator.addScript(scriptResource);
-            populator.setSeparator(";;"); // Permite ejecutar el bloque anonimo PL/pgSQL completo
-            // Alternativamente ejecutar como sentencia unica:
-            try (Statement statement = connection.createStatement();
-                 java.io.InputStream is = scriptResource.getInputStream()) {
-                String sql = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            ClassPathResource scriptResource = new ClassPathResource("db/test/7.1_pruebas_rdbms.sql");
+            try (InputStream is = scriptResource.getInputStream()) {
+                String sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 statement.execute(sql);
             }
 
             long duration = System.currentTimeMillis() - startTime;
             response.put("status", "SUCCESS");
             response.put("edtTask", "7.1 Pruebas del RDBMS");
-            response.put("testedComponents", java.util.List.of(
+            response.put("testedComponents", List.of(
                     "sp_crear_reserva (Procedimiento)",
                     "fn_validar_disponibilidad (Funcion)",
-                    "trg_validar_cruce_horario (Trigger)",
+                    "fn_validar_horario (Funcion)",
+                    "trg_validar_cruce_horario / no_solapamiento (Trigger / Constraint)",
                     "fn_calcular_costo_total (Funcion)",
                     "trg_recalcular_costo_servicios (Trigger)",
-                    "trg_generar_factura_al_confirmar (Trigger)",
+                    "tg_evitar_borrado_facturas (Trigger)",
                     "sp_registrar_pago (Procedimiento)",
                     "fn_estado_pago (Funcion)",
                     "sp_cancelar_reserva (Procedimiento)"

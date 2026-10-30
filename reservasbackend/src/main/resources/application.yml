@@ -3,7 +3,7 @@ spring:
     name: reservasbackend
 
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:192.168.80.27}:${POSTGRES_PORT:5432}/${POSTGRES_DB:reservas_db}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:reservas_db}
     username: ${APP_DB_USER:app_reservas}
     password: ${APP_DB_PASSWORD:app123}
     driver-class-name: org.postgresql.Driver
@@ -18,7 +18,7 @@ spring:
 
   data:
     mongodb:
-      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:admin}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin
+      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:prueba123}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -33,7 +33,7 @@ spring:
   flyway:
     enabled: true
     user: ${POSTGRES_USER:reservas_admin}
-    password: ${POSTGRES_PASSWORD}
+    password: ${POSTGRES_PASSWORD:prueba123}
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration

@@ -7,6 +7,7 @@
 DO $$
 DECLARE
     v_id_sucursal INT;
+    v_id_tipo_espacio INT;
     v_id_espacio INT;
     v_id_cliente INT;
     v_id_empleado INT;
@@ -18,6 +19,7 @@ DECLARE
     v_disponible BOOLEAN;
     v_costo_calculado DECIMAL(12,2);
     v_cruce_bloqueado BOOLEAN := FALSE;
+    v_borrado_factura_bloqueado BOOLEAN := FALSE;
     v_estado_pago_res VARCHAR(20);
     -- Hora base fija a las 00:00 de hoy + 5 dias, para que los intervalos sumen las horas correctamente
     v_fecha_base TIMESTAMP := (CURRENT_DATE + INTERVAL '5 days')::TIMESTAMP;
@@ -33,8 +35,12 @@ BEGIN
     VALUES ('Sucursal Norte Test', 'Calle 100 # 15-20', 'Bogota', '3001234567')
     RETURNING id_sucursal INTO v_id_sucursal;
 
-    INSERT INTO espacios (id_sucursal, nombre, tipo, capacidad, tarifa_por_hora, estado)
-    VALUES (v_id_sucursal, 'Salon Imperial Test', 'Auditorio', 100, 150000.00, 'disponible')
+    INSERT INTO tipos_espacio (nombre, descripcion)
+    VALUES ('Auditorio Test', 'Tipo de espacio para pruebas RDBMS')
+    RETURNING id_tipo_espacio INTO v_id_tipo_espacio;
+
+    INSERT INTO espacios (id_sucursal, id_tipo_espacio, nombre, capacidad, tarifa_por_hora, estado)
+    VALUES (v_id_sucursal, v_id_tipo_espacio, 'Salon Imperial Test', 100, 150000.00, 'disponible')
     RETURNING id_espacio INTO v_id_espacio;
 
     INSERT INTO clientes (tipo_cliente, identificacion, nombre_razon_social, email, telefono)
@@ -130,9 +136,22 @@ BEGIN
 
     -- Validamos si la reserva fue confirmada por llegar al 30%
     IF (SELECT estado FROM reservas WHERE id_reserva = v_id_reserva_1) = 'confirmada' THEN
-        RAISE NOTICE '[OK] Reserva % ha sido confirmada despues del anticipo >= 30%.', v_id_reserva_1;
+        RAISE NOTICE '[OK] Reserva % ha sido confirmada despues del anticipo >= 30%%.', v_id_reserva_1;
     ELSE
-        RAISE EXCEPTION 'FALLO: La reserva no se confirmo al realizar el anticipo mayor o igual al 30%.';
+        RAISE EXCEPTION 'FALLO: La reserva no se confirmo al realizar el anticipo mayor o igual al 30%%.';
+    END IF;
+
+    -- Validar que tg_evitar_borrado_facturas bloquee el DELETE normal
+    BEGIN
+        DELETE FROM facturas WHERE id_factura = v_id_factura;
+    EXCEPTION
+        WHEN OTHERS THEN
+            v_borrado_factura_bloqueado := TRUE;
+            RAISE NOTICE '[OK] Trigger tg_evitar_borrado_facturas: Bloqueo eliminacion de factura con mensaje: %', SQLERRM;
+    END;
+
+    IF NOT v_borrado_factura_bloqueado THEN
+        RAISE EXCEPTION 'FALLO: Se permitio borrar una factura sin restriccion.';
     END IF;
 
     -- -----------------------------------------------------------------
@@ -143,7 +162,7 @@ BEGIN
         v_id_espacio,
         v_id_empleado,
         v_fecha_base + INTERVAL '16 hours', -- 16:00
-        v_fecha_base + INTERVAL '19 hours', -- 19:00 (antes era 20 a 23, que violaba validar_horario)
+        v_fecha_base + INTERVAL '22 hours', -- 22:00 (valida cierre exacto a las 22:00)
         NULL::JSONB,
         v_id_reserva_2
     );
@@ -157,19 +176,19 @@ BEGIN
     END IF;
 
     -- -----------------------------------------------------------------
-    -- LIMPIEZA
+    -- LIMPIEZA (Compatible con rol app_reservas sin requerir ALTER TABLE)
     -- -----------------------------------------------------------------
     DELETE FROM pagos WHERE id_factura = v_id_factura;
-    
-    -- Ignorar temporalmente trigger_evitar_borrado_facturas para la limpieza
-    ALTER TABLE facturas DISABLE TRIGGER tg_evitar_borrado_facturas;
+
+    PERFORM set_config('reservas.test_cleanup', 'on', true);
     DELETE FROM facturas WHERE id_factura = v_id_factura;
-    ALTER TABLE facturas ENABLE TRIGGER tg_evitar_borrado_facturas;
+    PERFORM set_config('reservas.test_cleanup', 'off', true);
 
     DELETE FROM reserva_servicios WHERE id_reserva IN (v_id_reserva_1, v_id_reserva_2);
     DELETE FROM reservas WHERE id_reserva IN (v_id_reserva_1, v_id_reserva_2);
     DELETE FROM servicios_adicionales WHERE id_servicio = v_id_servicio;
     DELETE FROM espacios WHERE id_espacio = v_id_espacio;
+    DELETE FROM tipos_espacio WHERE id_tipo_espacio = v_id_tipo_espacio;
     DELETE FROM sucursales WHERE id_sucursal = v_id_sucursal;
     DELETE FROM clientes WHERE id_cliente = v_id_cliente;
     DELETE FROM empleados WHERE id_empleado = v_id_empleado;
