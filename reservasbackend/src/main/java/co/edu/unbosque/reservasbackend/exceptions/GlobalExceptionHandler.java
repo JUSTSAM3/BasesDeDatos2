@@ -77,6 +77,11 @@ public class GlobalExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgumentException(IllegalArgumentException ex) {
+        return createProblemDetail(HttpStatus.BAD_REQUEST, ex.getMessage(), "Solicitud Inválida");
+    }
+
     private ProblemDetail createProblemDetail(HttpStatus status, String detail, String title) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
         problemDetail.setTitle(title);

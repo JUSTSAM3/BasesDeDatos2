@@ -8,7 +8,8 @@ import javax.sql.DataSource;
 
 @SpringBootTest(properties = {
 		"spring.flyway.enabled=false",
-		"spring.jpa.hibernate.ddl-auto=none"
+		"spring.jpa.hibernate.ddl-auto=none",
+		"app.mongo.auto-init=false"
 })
 class ReservasbackendApplicationTests {
 
