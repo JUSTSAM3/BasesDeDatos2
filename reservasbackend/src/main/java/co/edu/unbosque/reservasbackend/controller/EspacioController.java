@@ -5,6 +5,7 @@ import co.edu.unbosque.reservasbackend.dto.EspacioResponseDTO;
 import co.edu.unbosque.reservasbackend.dto.ServicioAdicionalResponseDTO;
 import co.edu.unbosque.reservasbackend.dto.TipoEspacioResponseDTO;
 import co.edu.unbosque.reservasbackend.sql.service.EspacioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class EspacioController {
     }
 
     @PostMapping("/crear")
-    public ResponseEntity<EspacioResponseDTO> crearEspacio(@RequestBody EspacioRequestDTO dto) {
+    public ResponseEntity<EspacioResponseDTO> crearEspacio(@Valid @RequestBody EspacioRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(espacioService.crearEspacio(dto));
     }
 
