@@ -118,6 +118,100 @@ export interface PagoResponseDTO {
   estadoPago: string;
 }
 
+// ==================== INTERFACES NOSQL (MONGODB) ====================
+export interface DetalleEventoNoSql {
+  id?: string;
+  idReserva: number;
+  idCliente: number;
+  tipoEvento: string;
+  nombreEvento: string;
+  fechaInicio?: string;
+  fechaFin?: string;
+  numInvitadosEstimado?: number;
+  espacio?: {
+    idEspacio: number;
+    nombre: string;
+    tipo?: string;
+    idSucursal: number;
+    ciudad?: string;
+  };
+  servicios?: {
+    idServicio: number;
+    nombre: string;
+    cantidad: number;
+  }[];
+  invitados?: {
+    nombre: string;
+    email?: string;
+    confirmado?: boolean;
+    mesa?: number;
+    restriccionesAlimentarias?: string[];
+  }[];
+  requerimientosEspeciales?: {
+    tipo: string;
+    descripcion: string;
+    estado?: string;
+  }[];
+  agenda?: {
+    horaInicio?: string;
+    horaFin?: string;
+    actividad: string;
+    responsable?: string;
+  }[];
+  datosExtra?: Record<string, unknown>;
+  estadoReserva?: string;
+}
+
+export interface ResenaNoSql {
+  id?: string;
+  idReserva: number;
+  idCliente: number;
+  idEspacio: number;
+  calificacionGeneral: number;
+  calificaciones?: {
+    espacio: number;
+    servicios: number;
+    coordinacion: number;
+    precio: number;
+  };
+  comentario?: string;
+  recomendaria?: boolean;
+  etiquetas?: string[];
+  respuestaAdmin?: {
+    texto: string;
+    idEmpleado: number;
+    fecha?: string;
+  };
+  fechaResena?: string;
+}
+
+export interface ReporteEspacioNoSql {
+  idEspacio: number;
+  nombreEspacio: string;
+  ciudad: string;
+  totalEventos: number;
+  totalInvitadosEstimados: number;
+  tiposEventoAtendidos: string[];
+}
+
+export interface ReporteServicioNoSql {
+  idServicio: number;
+  nombreServicio: string;
+  eventosQueLoSolicitaron: number;
+  unidadesTotalesSolicitadas: number;
+}
+
+export interface ReporteCalificacionNoSql {
+  idEspacio: number;
+  nombreEspacio?: string;
+  totalResenas: number;
+  promedioGeneral: number;
+  promedioEspacio?: number;
+  promedioServicios?: number;
+  promedioCoordinacion?: number;
+  promedioPrecio?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -129,6 +223,12 @@ export class BackendService {
 
   probarConexion(): Observable<string> {
     return this.http.get(`${this.apiUrl}/test`, { responseType: 'text' });
+  }
+
+  ejecutarPruebasRdbms(): Observable<{ status: string; message: string; executionTimeMs: number }> {
+    return this.http.get<{ status: string; message: string; executionTimeMs: number }>(
+      `${this.apiUrl}/health/rdbms/test-routines`
+    );
   }
 
   // ==================== ESPACIOS & CATÁLOGOS ====================
@@ -220,5 +320,42 @@ export class BackendService {
 
   crearSucursal(sucursal: Sucursal): Observable<Sucursal> {
     return this.http.post<Sucursal>(`${this.apiUrl}/sucursales/crear`, sucursal);
+  }
+
+  // ==================== NOSQL (MONGODB - RF-16, RF-17, RF-18) ====================
+  inicializarMongo(): Observable<Record<string, unknown>> {
+    return this.http.post<Record<string, unknown>>(`${this.apiUrl}/nosql/init`, {});
+  }
+
+  listarDetallesEvento(): Observable<DetalleEventoNoSql[]> {
+    return this.http.get<DetalleEventoNoSql[]>(`${this.apiUrl}/nosql/detalles-evento`);
+  }
+
+  obtenerDetallePorReserva(idReserva: number): Observable<DetalleEventoNoSql> {
+    return this.http.get<DetalleEventoNoSql>(`${this.apiUrl}/nosql/detalles-evento/reserva/${idReserva}`);
+  }
+
+  guardarDetalleEvento(detalle: DetalleEventoNoSql): Observable<DetalleEventoNoSql> {
+    return this.http.post<DetalleEventoNoSql>(`${this.apiUrl}/nosql/detalles-evento`, detalle);
+  }
+
+  listarResenas(): Observable<ResenaNoSql[]> {
+    return this.http.get<ResenaNoSql[]>(`${this.apiUrl}/nosql/resenas`);
+  }
+
+  guardarResena(resena: ResenaNoSql): Observable<ResenaNoSql> {
+    return this.http.post<ResenaNoSql>(`${this.apiUrl}/nosql/resenas`, resena);
+  }
+
+  reporteEspaciosMasReservados(): Observable<ReporteEspacioNoSql[]> {
+    return this.http.get<ReporteEspacioNoSql[]>(`${this.apiUrl}/nosql/reportes/espacios-mas-reservados`);
+  }
+
+  reporteServiciosMasSolicitados(): Observable<ReporteServicioNoSql[]> {
+    return this.http.get<ReporteServicioNoSql[]>(`${this.apiUrl}/nosql/reportes/servicios-mas-solicitados`);
+  }
+
+  reporteCalificacionesPorEspacio(): Observable<ReporteCalificacionNoSql[]> {
+    return this.http.get<ReporteCalificacionNoSql[]>(`${this.apiUrl}/nosql/reportes/calificaciones-espacios`);
   }
 }

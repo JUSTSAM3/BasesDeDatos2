@@ -2,9 +2,9 @@
 
   <div class="dashboard-top-bar">
     <div class="dashboard-title-group">
-      <h1>Dashboard Relacional (PostgreSQL)</h1>
+      <h1>Dashboard Híbrido (PostgreSQL + MongoDB)</h1>
       <p class="subtitulo">
-        Gestión transaccional de reservas, pagos, espacios y clientes
+        Gestión transaccional ACID en PostgreSQL y analítica documental NoSQL en MongoDB
       </p>
     </div>
 
@@ -12,6 +12,9 @@
       <a routerLink="/" class="btn-back-home">
         ← Volver al Inicio
       </a>
+      <button type="button" class="btn-new-client" (click)="probarRutinasRdbms()">
+        ✓ Test Rutinas SQL (6/6)
+      </button>
       <button type="button" class="btn-new-client" (click)="abrirModal('cliente')">
         + Nuevo Cliente
       </button>
@@ -39,7 +42,7 @@
   <div class="tabla-contenedor">
 
     <div class="tabla-header">
-      <h2>Reservas registradas</h2>
+      <h2>Reservas registradas (PostgreSQL)</h2>
       <button type="button" class="btn-nueva-reserva" (click)="abrirModal('reserva')">+ Nueva reserva</button>
     </div>
 
@@ -54,7 +57,7 @@
           <th>Costo Total</th>
           <th>Estado Reserva</th>
           <th>Estado Pago</th>
-          <th>Acciones</th>
+          <th>Acciones SQL / NoSQL</th>
         </tr>
       </thead>
 
@@ -99,6 +102,12 @@
                   <button type="button" class="btn-table-pay" (click)="abrirModal('pago', reserva)">
                     Pagar
                   </button>
+                  <button type="button" class="btn-table-mongo" (click)="abrirModal('detalleMongo', reserva)">
+                    Detalle NoSQL
+                  </button>
+                  <button type="button" class="btn-table-review" (click)="abrirModal('resenaMongo', reserva)">
+                    ★ Reseña
+                  </button>
                   <button type="button" class="btn-table-cancel" (click)="cancelarReserva(reserva.idReserva)">
                     Cancelar
                   </button>
@@ -110,6 +119,132 @@
       </tbody>
     </table>
 
+  </div>
+
+  <!-- ==================== SECCIÓN DOCUMENTAL MONGODB (RF-16, RF-17, RF-18) ==================== -->
+  <div class="tabla-contenedor mongo-section">
+    <div class="tabla-header">
+      <div>
+        <h2>Analítica y Eventos Documentales (MongoDB)</h2>
+        <p class="mongo-subtitle">
+          Patrones: Extended Reference, Polymorphic (datos_extra) y Bounded Array + Agregaciones ($unwind, $group, $lookup)
+        </p>
+      </div>
+      <button type="button" class="btn-nueva-reserva" (click)="sincronizarSemillaMongo()">
+        ↻ Sincronizar / Seed MongoDB
+      </button>
+    </div>
+
+    @if (!mongoDisponible) {
+      <div class="empty-table-cell">
+        El contenedor / VM de MongoDB no está activo aún. Cuando lo inicies, pulsa "Sincronizar / Seed MongoDB".
+      </div>
+    } @else {
+      <div class="mongo-grid-3">
+        <!-- Agregación 1: Espacios más reservados -->
+        <div class="mongo-report-card">
+          <h3>1. Espacios Más Reservados ($group)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Espacio</th>
+                <th>Eventos</th>
+                <th>Invitados</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of reporteEspaciosMongo; track item.idEspacio) {
+                <tr>
+                  <td><strong>{{ item.nombreEspacio }}</strong></td>
+                  <td>{{ item.totalEventos }}</td>
+                  <td>{{ item.totalInvitadosEstimados }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Agregación 2: Servicios más solicitados -->
+        <div class="mongo-report-card">
+          <h3>2. Servicios Más Solicitados ($unwind)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Servicio</th>
+                <th>Eventos</th>
+                <th>Unidades</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (srv of reporteServiciosMongo; track srv.idServicio) {
+                <tr>
+                  <td><strong>{{ srv.nombreServicio }}</strong></td>
+                  <td>{{ srv.eventosQueLoSolicitaron }}</td>
+                  <td>{{ srv.unidadesTotalesSolicitadas }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Agregación 3: Calificaciones por espacio ($lookup) -->
+        <div class="mongo-report-card">
+          <h3>3. Ranking de Reseñas ($lookup + $avg)</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Espacio</th>
+                <th>Reseñas</th>
+                <th>Promedio</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (cal of reporteCalificacionesMongo; track cal.idEspacio) {
+                <tr>
+                  <td><strong>{{ cal.nombreEspacio || ('Espacio #' + cal.idEspacio) }}</strong></td>
+                  <td>{{ cal.totalResenas }}</td>
+                  <td>{{ cal.promedioGeneral | number:'1.1-1' }} ★</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Listado de Documentos detalles_evento (RF-16) -->
+      <div class="mongo-docs-wrapper">
+        <h3>Documentos en colección <code>detalles_evento</code> ({{ detallesEventoMongo.length }})</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Reserva</th>
+              <th>Tipo</th>
+              <th>Nombre del Evento</th>
+              <th>Espacio (Extended Ref)</th>
+              <th>Invitados Est.</th>
+              <th>Requerimientos / Agenda</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (doc of detallesEventoMongo; track doc.idReserva) {
+              <tr>
+                <td><strong>#{{ doc.idReserva }}</strong></td>
+                <td><span class="estado confirmada">{{ doc.tipoEvento }}</span></td>
+                <td>{{ doc.nombreEvento }}</td>
+                <td>{{ doc.espacio?.nombre }} ({{ doc.espacio?.ciudad }})</td>
+                <td>{{ doc.numInvitadosEstimado || 0 }}</td>
+                <td>
+                  {{ doc.requerimientosEspeciales?.[0]?.descripcion || 'Estándar' }}
+                  @if (doc.agenda?.length) {
+                    · <em>{{ doc.agenda?.[0]?.actividad }}</em>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
   </div>
 
   <!-- MODAL NUEVA RESERVA -->
@@ -221,6 +356,119 @@
           <div class="modal-footer">
             <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
             <button type="button" class="btn-modal-success" (click)="guardarPago()">Confirmar Pago</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL DETALLE EVENTO MONGODB (RF-16) -->
+  @if (modalActivo === 'detalleMongo') {
+    <div class="modal-backdrop">
+      <div class="modal-box modal-box-lg">
+        <h3>Detalle Documental del Evento (MongoDB #{{ formDetalleMongo.idReserva }})</h3>
+
+        <div class="modal-form">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Tipo de Evento</label>
+              <select [(ngModel)]="formDetalleMongo.tipoEvento">
+                <option value="boda">Boda</option>
+                <option value="conferencia">Conferencia</option>
+                <option value="corporativo">Corporativo</option>
+                <option value="cumpleanos">Cumpleaños</option>
+                <option value="grado">Grado</option>
+                <option value="social">Social</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Invitados Estimados</label>
+              <input type="number" min="1" [(ngModel)]="formDetalleMongo.numInvitadosEstimado">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Nombre del Evento</label>
+            <input type="text" [(ngModel)]="formDetalleMongo.nombreEvento">
+          </div>
+
+          <div class="form-group">
+            <label>Invitado Principal / Anfitrión (Embebido)</label>
+            <input type="text" [(ngModel)]="formDetalleMongo.invitadoPrincipal">
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Tipo Requerimiento</label>
+              <select [(ngModel)]="formDetalleMongo.requerimientoTipo">
+                <option value="montaje">Montaje</option>
+                <option value="tecnico">Técnico</option>
+                <option value="alimentacion">Alimentación</option>
+                <option value="accesibilidad">Accesibilidad</option>
+                <option value="seguridad">Seguridad</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Temática / Datos Extra (Polimórfico)</label>
+              <input type="text" [(ngModel)]="formDetalleMongo.tematicaExtra">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Descripción Requerimiento Especial</label>
+            <input type="text" [(ngModel)]="formDetalleMongo.requerimientoDescripcion">
+          </div>
+
+          <div class="form-group">
+            <label>Actividad Principal de la Agenda</label>
+            <input type="text" [(ngModel)]="formDetalleMongo.actividadAgenda">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
+            <button type="button" class="btn-modal-teal" (click)="guardarDetalleMongo()">Guardar en MongoDB</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL RESEÑA MONGODB (RF-17) -->
+  @if (modalActivo === 'resenaMongo') {
+    <div class="modal-backdrop">
+      <div class="modal-box">
+        <h3>Registrar Reseña Post-Evento (MongoDB #{{ formResenaMongo.idReserva }})</h3>
+
+        <div class="modal-form">
+          <div class="form-group">
+            <label>Calificación General (1 a 5 ★)</label>
+            <input type="number" min="1" max="5" [(ngModel)]="formResenaMongo.calificacionGeneral">
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Calif. Espacio (1-5)</label>
+              <input type="number" min="1" max="5" [(ngModel)]="formResenaMongo.calEspacio">
+            </div>
+            <div class="form-group">
+              <label>Calif. Servicios (1-5)</label>
+              <input type="number" min="1" max="5" [(ngModel)]="formResenaMongo.calServicios">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Comentario</label>
+            <input type="text" [(ngModel)]="formResenaMongo.comentario">
+          </div>
+
+          <div class="form-group">
+            <label>Etiquetas (separadas por coma)</label>
+            <input type="text" [(ngModel)]="formResenaMongo.etiquetasTexto">
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
+            <button type="button" class="btn-modal-primary" (click)="guardarResenaMongo()">Guardar Reseña</button>
           </div>
         </div>
       </div>

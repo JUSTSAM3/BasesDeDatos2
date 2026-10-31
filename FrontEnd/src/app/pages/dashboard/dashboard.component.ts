@@ -6,10 +6,15 @@ import { forkJoin } from 'rxjs';
 import {
   BackendService,
   Cliente,
+  DetalleEventoNoSql,
   Empleado,
   Espacio,
   EspacioRequestDTO,
   PagoRequestDTO,
+  ReporteCalificacionNoSql,
+  ReporteEspacioNoSql,
+  ReporteServicioNoSql,
+  ResenaNoSql,
   ReservaRequestDTO,
   ReservaResponseDTO,
   ServicioAdicional,
@@ -19,6 +24,8 @@ import {
 
 export interface ReservaTabla {
   idReserva: number;
+  idCliente: number;
+  idEspacio: number;
   cliente: string;
   espacio: string;
   fecha: string;
@@ -52,11 +59,19 @@ export class DashboardComponent implements OnInit {
   tiposEspacio: TipoEspacio[] = [];
   servicios: ServicioAdicional[] = [];
 
+  // Datos y Reportes Documentales (MongoDB)
+  detallesEventoMongo: DetalleEventoNoSql[] = [];
+  resenasMongo: ResenaNoSql[] = [];
+  reporteEspaciosMongo: ReporteEspacioNoSql[] = [];
+  reporteServiciosMongo: ReporteServicioNoSql[] = [];
+  reporteCalificacionesMongo: ReporteCalificacionNoSql[] = [];
+  mongoDisponible = true;
+
   mensajeAlerta = '';
   esError = false;
 
   // Modales / Formularios
-  modalActivo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio' = 'ninguno';
+  modalActivo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio' | 'detalleMongo' | 'resenaMongo' = 'ninguno';
 
   formReserva = {
     idCliente: 1,
@@ -93,10 +108,40 @@ export class DashboardComponent implements OnInit {
     estado: 'disponible'
   };
 
+  formDetalleMongo = {
+    idReserva: 0,
+    idCliente: 1,
+    idEspacio: 1,
+    nombreEspacio: '',
+    tipoEvento: 'boda',
+    nombreEvento: '',
+    numInvitadosEstimado: 100,
+    invitadoPrincipal: '',
+    requerimientoTipo: 'montaje',
+    requerimientoDescripcion: '',
+    actividadAgenda: '',
+    tematicaExtra: ''
+  };
+
+  formResenaMongo = {
+    idReserva: 0,
+    idCliente: 1,
+    idEspacio: 1,
+    calificacionGeneral: 5,
+    calEspacio: 5,
+    calServicios: 5,
+    calCoordinacion: 5,
+    calPrecio: 4,
+    comentario: '',
+    recomendaria: true,
+    etiquetasTexto: 'puntualidad, excelente servicio'
+  };
+
   constructor(private backendService: BackendService) {}
 
   ngOnInit(): void {
     this.cargarTodo();
+    this.cargarDatosMongo();
   }
 
   cargarTodo(): void {
@@ -156,6 +201,8 @@ export class DashboardComponent implements OnInit {
 
           return {
             idReserva: r.idReserva,
+            idCliente: r.idCliente,
+            idEspacio: r.idEspacio,
             cliente: cli ? cli.nombreRazonSocial : `Cliente #${r.idCliente}`,
             espacio: esp ? esp.nombre : `Espacio #${r.idEspacio}`,
             fecha: fechaObj ? fechaObj.toLocaleDateString('es-CO') : r.fechaInicio,
@@ -172,6 +219,28 @@ export class DashboardComponent implements OnInit {
         this.actualizarMetricas();
       },
       error: () => {}
+    });
+  }
+
+  cargarDatosMongo(): void {
+    forkJoin({
+      detalles: this.backendService.listarDetallesEvento(),
+      resenas: this.backendService.listarResenas(),
+      repEspacios: this.backendService.reporteEspaciosMasReservados(),
+      repServicios: this.backendService.reporteServiciosMasSolicitados(),
+      repCalificaciones: this.backendService.reporteCalificacionesPorEspacio()
+    }).subscribe({
+      next: (res) => {
+        this.mongoDisponible = true;
+        this.detallesEventoMongo = res.detalles || [];
+        this.resenasMongo = res.resenas || [];
+        this.reporteEspaciosMongo = res.repEspacios || [];
+        this.reporteServiciosMongo = res.repServicios || [];
+        this.reporteCalificacionesMongo = res.repCalificaciones || [];
+      },
+      error: () => {
+        this.mongoDisponible = false;
+      }
     });
   }
 
@@ -200,7 +269,10 @@ export class DashboardComponent implements OnInit {
   }
 
   // ==================== ACCIONES RELACIONALES ====================
-  abrirModal(tipo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio', reserva?: ReservaTabla): void {
+  abrirModal(
+    tipo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio' | 'detalleMongo' | 'resenaMongo',
+    reserva?: ReservaTabla
+  ): void {
     this.modalActivo = tipo;
     if (tipo === 'pago' && reserva) {
       this.formPago = {
@@ -208,6 +280,35 @@ export class DashboardComponent implements OnInit {
         tipoPago: 'anticipo',
         monto: Math.max(Math.round(reserva.costoTotal * 0.3), 10000),
         metodoPago: 'transferencia'
+      };
+    } else if (tipo === 'detalleMongo' && reserva) {
+      this.formDetalleMongo = {
+        idReserva: reserva.idReserva,
+        idCliente: reserva.idCliente,
+        idEspacio: reserva.idEspacio,
+        nombreEspacio: reserva.espacio,
+        tipoEvento: 'social',
+        nombreEvento: `Evento ${reserva.cliente} (#${reserva.idReserva})`,
+        numInvitadosEstimado: 80,
+        invitadoPrincipal: reserva.cliente,
+        requerimientoTipo: 'montaje',
+        requerimientoDescripcion: 'Montaje imperial y sonido ambiental',
+        actividadAgenda: 'Recepción de invitados y apertura',
+        tematicaExtra: 'Corporativo / Social'
+      };
+    } else if (tipo === 'resenaMongo' && reserva) {
+      this.formResenaMongo = {
+        idReserva: reserva.idReserva,
+        idCliente: reserva.idCliente,
+        idEspacio: reserva.idEspacio,
+        calificacionGeneral: 5,
+        calEspacio: 5,
+        calServicios: 5,
+        calCoordinacion: 5,
+        calPrecio: 4,
+        comentario: `Excelente experiencia en ${reserva.espacio}.`,
+        recomendaria: true,
+        etiquetasTexto: 'puntualidad, excelente atención'
       };
     }
   }
@@ -302,7 +403,111 @@ export class DashboardComponent implements OnInit {
         this.cargarTodo();
       },
       error: (err) => {
-        this.mostrarMensaje(err.error?.message || 'Error al crear el espacio.', true);
+        this.mostrarMensaje(err.error?.message || err.error?.detail || 'Error al crear el espacio.', true);
+      }
+    });
+  }
+
+  // ==================== ACCIONES NOSQL (MONGODB) ====================
+  guardarDetalleMongo(): void {
+    const espCat = this.espacios.find((e) => e.idEspacio === this.formDetalleMongo.idEspacio);
+
+    const payload: DetalleEventoNoSql = {
+      idReserva: this.formDetalleMongo.idReserva,
+      idCliente: this.formDetalleMongo.idCliente,
+      tipoEvento: this.formDetalleMongo.tipoEvento,
+      nombreEvento: this.formDetalleMongo.nombreEvento,
+      numInvitadosEstimado: Number(this.formDetalleMongo.numInvitadosEstimado) || 50,
+      espacio: {
+        idEspacio: this.formDetalleMongo.idEspacio,
+        nombre: espCat?.nombre || this.formDetalleMongo.nombreEspacio || 'Salón Principal',
+        tipo: espCat?.nombreTipoEspacio || 'General',
+        idSucursal: espCat?.idSucursal || 1,
+        ciudad: 'Bogotá'
+      },
+      invitados: this.formDetalleMongo.invitadoPrincipal
+        ? [{ nombre: this.formDetalleMongo.invitadoPrincipal, confirmado: true, mesa: 1 }]
+        : [],
+      requerimientosEspeciales: this.formDetalleMongo.requerimientoDescripcion
+        ? [{
+            tipo: this.formDetalleMongo.requerimientoTipo,
+            descripcion: this.formDetalleMongo.requerimientoDescripcion,
+            estado: 'pendiente'
+          }]
+        : [],
+      agenda: this.formDetalleMongo.actividadAgenda
+        ? [{ actividad: this.formDetalleMongo.actividadAgenda, responsable: 'Coordinador' }]
+        : [],
+      datosExtra: {
+        tematica: this.formDetalleMongo.tematicaExtra || 'Estándar'
+      },
+      estadoReserva: 'confirmada'
+    };
+
+    this.backendService.guardarDetalleEvento(payload).subscribe({
+      next: (doc) => {
+        this.modalActivo = 'ninguno';
+        this.mostrarMensaje(`Detalle documental guardado en MongoDB para la reserva #${doc.idReserva}.`);
+        this.cargarDatosMongo();
+      },
+      error: (err) => {
+        this.mostrarMensaje(err.error?.detail || 'Error al guardar en MongoDB (verifica la VM de Mongo).', true);
+      }
+    });
+  }
+
+  guardarResenaMongo(): void {
+    const etiquetas = this.formResenaMongo.etiquetasTexto
+      ? this.formResenaMongo.etiquetasTexto.split(',').map((t) => t.trim()).filter((t) => t.length > 0)
+      : [];
+
+    const payload: ResenaNoSql = {
+      idReserva: this.formResenaMongo.idReserva,
+      idCliente: this.formResenaMongo.idCliente,
+      idEspacio: this.formResenaMongo.idEspacio,
+      calificacionGeneral: Number(this.formResenaMongo.calificacionGeneral),
+      calificaciones: {
+        espacio: Number(this.formResenaMongo.calEspacio),
+        servicios: Number(this.formResenaMongo.calServicios),
+        coordinacion: Number(this.formResenaMongo.calCoordinacion),
+        precio: Number(this.formResenaMongo.calPrecio)
+      },
+      comentario: this.formResenaMongo.comentario,
+      recomendaria: this.formResenaMongo.recomendaria,
+      etiquetas
+    };
+
+    this.backendService.guardarResena(payload).subscribe({
+      next: (res) => {
+        this.modalActivo = 'ninguno';
+        this.mostrarMensaje(`Reseña (${res.calificacionGeneral}/5 ★) registrada en MongoDB para la reserva #${res.idReserva}.`);
+        this.cargarDatosMongo();
+      },
+      error: (err) => {
+        this.mostrarMensaje(err.error?.detail || 'Error al registrar la reseña en MongoDB.', true);
+      }
+    });
+  }
+
+  sincronizarSemillaMongo(): void {
+    this.backendService.inicializarMongo().subscribe({
+      next: () => {
+        this.mostrarMensaje('Índices y documentos semilla verificados en MongoDB.');
+        this.cargarDatosMongo();
+      },
+      error: () => {
+        this.mostrarMensaje('No se pudo conectar con MongoDB. Verifica que el contenedor esté activo.', true);
+      }
+    });
+  }
+
+  probarRutinasRdbms(): void {
+    this.backendService.ejecutarPruebasRdbms().subscribe({
+      next: (res) => {
+        this.mostrarMensaje(`[PostgreSQL EDT 7.1] ${res.message} (${res.executionTimeMs} ms)`);
+      },
+      error: (err) => {
+        this.mostrarMensaje(err.error?.error || 'Fallo al ejecutar la suite de pruebas RDBMS.', true);
       }
     });
   }
