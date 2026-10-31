@@ -260,6 +260,78 @@ td {
       background: #b91c1c;
     }
   }
+
+  .btn-table-mongo {
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: none;
+    background: #0f766e;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #115e59;
+    }
+  }
+
+  .btn-table-review {
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    border: none;
+    background: #d97706;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+      background: #b45309;
+    }
+  }
+}
+
+.mongo-section {
+  margin-top: 28px;
+
+  .mongo-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+}
+
+.mongo-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.mongo-report-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    color: #0f172a;
+  }
+}
+
+.mongo-docs-wrapper {
+  margin-top: 16px;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+    color: #0f172a;
+  }
 }
 
 /* MODALES */
