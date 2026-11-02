@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   BackendService,
@@ -69,6 +69,7 @@ export class DashboardComponent implements OnInit {
 
   mensajeAlerta = '';
   esError = false;
+  empleadoSesion: Empleado | null = null;
 
   // Modales / Formularios
   modalActivo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio' | 'detalleMongo' | 'resenaMongo' = 'ninguno';
@@ -139,12 +140,34 @@ export class DashboardComponent implements OnInit {
 
   constructor(
     private backendService: BackendService,
+    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    const rawSesion = sessionStorage.getItem('staff_sesion');
+    if (!rawSesion) {
+      this.router.navigate(['/']);
+      return;
+    }
+    try {
+      this.empleadoSesion = JSON.parse(rawSesion);
+      if (this.empleadoSesion?.idEmpleado) {
+        this.formReserva.idEmpleado = this.empleadoSesion.idEmpleado;
+      }
+    } catch {
+      sessionStorage.removeItem('staff_sesion');
+      this.router.navigate(['/']);
+      return;
+    }
+
     this.cargarTodo();
     this.cargarDatosMongo();
+  }
+
+  cerrarSesionStaff(): void {
+    sessionStorage.removeItem('staff_sesion');
+    this.router.navigate(['/']);
   }
 
   cargarTodo(): void {
@@ -168,7 +191,9 @@ export class DashboardComponent implements OnInit {
         }
 
         this.empleados = res.empleados || [];
-        if (this.empleados.length > 0 && this.empleados[0].idEmpleado) {
+        if (this.empleadoSesion?.idEmpleado) {
+          this.formReserva.idEmpleado = this.empleadoSesion.idEmpleado;
+        } else if (this.empleados.length > 0 && this.empleados[0].idEmpleado) {
           this.formReserva.idEmpleado = this.empleados[0].idEmpleado;
         }
 

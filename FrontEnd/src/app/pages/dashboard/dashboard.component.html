@@ -4,7 +4,11 @@
     <div class="dashboard-title-group">
       <h1>Panel de Gestión de Reservas y Eventos</h1>
       <p class="subtitulo">
-        Administración de reservas, espacios, logística de eventos y satisfacción de clientes
+        @if (empleadoSesion) {
+          <strong>Sesión activa:</strong> {{ empleadoSesion.nombre }} · {{ empleadoSesion.cargo }}
+        } @else {
+          Administración de reservas, espacios, logística de eventos y satisfacción de clientes
+        }
       </p>
     </div>
 
@@ -17,6 +21,9 @@
       </button>
       <button type="button" class="btn-new-space" (click)="abrirModal('espacio')">
         + Nuevo Espacio
+      </button>
+      <button type="button" class="btn-back-home" (click)="cerrarSesionStaff()">
+        Cerrar sesión
       </button>
     </div>
   </div>
