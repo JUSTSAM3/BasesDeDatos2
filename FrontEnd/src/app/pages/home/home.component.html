@@ -614,6 +614,61 @@
     </div>
   }
 
+  <!-- MODAL DE ACCESO PERSONAL AUTORIZADO (STAFF) -->
+  @if (mostrarModalStaff) {
+    <div class="modal-backdrop">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="modal-title">Acceso Personal Autorizado</h3>
+          <button type="button" class="modal-close-btn" (click)="cerrarModalStaff()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p style="margin: 0 0 12px; color: #555; font-size: 0.92rem;">
+            Ingresa tus credenciales corporativas de empleado para acceder al Panel de Gestión.
+          </p>
+
+          <div>
+            <label class="modal-label">Correo Corporativo</label>
+            <input
+              type="email"
+              class="modal-input"
+              [(ngModel)]="credencialesStaff.email"
+              placeholder="nombre.apellido@reservasbosque.edu.co"
+              (keyup.enter)="iniciarSesionStaff()"
+            >
+          </div>
+
+          <div>
+            <label class="modal-label">Clave de Acceso</label>
+            <input
+              type="password"
+              class="modal-input"
+              [(ngModel)]="credencialesStaff.clave"
+              placeholder="••••••••"
+              (keyup.enter)="iniciarSesionStaff()"
+            >
+          </div>
+
+          @if (errorStaff) {
+            <div class="modal-alert-error">
+              {{ errorStaff }}
+            </div>
+          }
+
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="cerrarModalStaff()">
+              Cancelar
+            </button>
+            <button type="button" class="btn-primary" (click)="iniciarSesionStaff()" [disabled]="validandoStaff">
+              {{ validandoStaff ? 'Verificando...' : 'Ingresar al Panel' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
 
   <!-- FOOTER -->
   <footer>
@@ -644,7 +699,7 @@
       <div>
         <span>ATENCIÓN</span>
         <a (click)="abrirModalReserva()">Nueva Reserva</a>
-        <a routerLink="/dashboard">Acceso Staff</a>
+        <a href="#staff" (click)="abrirModalStaff($event)">Acceso Staff</a>
       </div>
 
       <div>

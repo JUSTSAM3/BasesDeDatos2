@@ -5,6 +5,7 @@ import { Router, RouterModule } from '@angular/router';
 import {
   BackendService,
   DisponibilidadResponseDTO,
+  Empleado,
   Espacio,
   ReservaRequestDTO,
   ReservaResponseDTO,
@@ -63,6 +64,15 @@ export class HomeComponent implements OnInit {
   creandoReserva = false;
   mensajeReservaExito = '';
   mensajeReservaError = '';
+
+  // Modal de Acceso Staff (Empleados)
+  mostrarModalStaff = false;
+  validandoStaff = false;
+  errorStaff = '';
+  credencialesStaff = {
+    email: '',
+    clave: ''
+  };
 
   modoCliente: 'nuevo' | 'registrado' = 'nuevo';
 
@@ -270,7 +280,68 @@ export class HomeComponent implements OnInit {
   }
 
   irADashboard(): void {
-    this.router.navigate(['/dashboard']);
+    this.abrirModalStaff();
+  }
+
+  abrirModalStaff(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
+    const sesionActiva = sessionStorage.getItem('staff_sesion');
+    if (sesionActiva) {
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+    this.errorStaff = '';
+    this.credencialesStaff = { email: '', clave: '' };
+    this.mostrarModalStaff = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarModalStaff(): void {
+    this.mostrarModalStaff = false;
+    this.errorStaff = '';
+  }
+
+  iniciarSesionStaff(): void {
+    this.errorStaff = '';
+    const correo = this.credencialesStaff.email.trim().toLowerCase();
+    const clave = this.credencialesStaff.clave.trim();
+
+    if (!correo || !clave) {
+      this.errorStaff = 'Ingresa tu correo corporativo y clave de acceso.';
+      return;
+    }
+
+    const clavesValidas = ['staff123', 'admin123', 'prueba123'];
+    if (!clavesValidas.includes(clave)) {
+      this.errorStaff = 'Acceso denegado: correo corporativo o clave no válidos.';
+      return;
+    }
+
+    this.validandoStaff = true;
+    this.backendService.listarEmpleados().subscribe({
+      next: (empleados: Empleado[]) => {
+        this.validandoStaff = false;
+        const encontrado = (empleados || []).find(
+          (emp) => emp.email && emp.email.trim().toLowerCase() === correo
+        );
+        if (!encontrado) {
+          this.errorStaff = 'No encontramos ningún empleado activo con ese correo corporativo.';
+          this.cdr.detectChanges();
+          return;
+        }
+        sessionStorage.setItem('staff_sesion', JSON.stringify(encontrado));
+        this.mostrarModalStaff = false;
+        this.cdr.detectChanges();
+        this.router.navigate(['/dashboard']);
+      },
+      error: () => {
+        this.validandoStaff = false;
+        this.errorStaff = 'No fue posible verificar las credenciales en este momento.';
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   irASeccion(idSeccion: string, event?: Event): void {
