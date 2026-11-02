@@ -16,9 +16,14 @@ spring:
       max-lifetime: 1200000
       connection-test-query: SELECT 1
 
+  mongodb:
+    uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:prueba123}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000
+    database: ${MONGO_DB:reservas_eventos_docs}
+
   data:
     mongodb:
       uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:prueba123}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000
+      database: ${MONGO_DB:reservas_eventos_docs}
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
