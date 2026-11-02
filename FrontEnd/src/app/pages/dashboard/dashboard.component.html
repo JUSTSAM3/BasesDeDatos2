@@ -2,9 +2,13 @@
 
   <div class="dashboard-top-bar">
     <div class="dashboard-title-group">
-      <h1>Dashboard Híbrido (PostgreSQL + MongoDB)</h1>
+      <h1>Panel de Gestión de Reservas y Eventos</h1>
       <p class="subtitulo">
-        Gestión transaccional ACID en PostgreSQL y analítica documental NoSQL en MongoDB
+        @if (empleadoSesion) {
+          <strong>Sesión activa:</strong> {{ empleadoSesion.nombre }} · {{ empleadoSesion.cargo }}
+        } @else {
+          Administración de reservas, espacios, logística de eventos y satisfacción de clientes
+        }
       </p>
     </div>
 
@@ -12,14 +16,14 @@
       <a routerLink="/" class="btn-back-home">
         ← Volver al Inicio
       </a>
-      <button type="button" class="btn-new-client" (click)="probarRutinasRdbms()">
-        ✓ Test Rutinas SQL (6/6)
-      </button>
       <button type="button" class="btn-new-client" (click)="abrirModal('cliente')">
         + Nuevo Cliente
       </button>
       <button type="button" class="btn-new-space" (click)="abrirModal('espacio')">
         + Nuevo Espacio
+      </button>
+      <button type="button" class="btn-back-home" (click)="cerrarSesionStaff()">
+        Cerrar sesión
       </button>
     </div>
   </div>
@@ -42,7 +46,7 @@
   <div class="tabla-contenedor">
 
     <div class="tabla-header">
-      <h2>Reservas registradas (PostgreSQL)</h2>
+      <h2>Reservas registradas</h2>
       <button type="button" class="btn-nueva-reserva" (click)="abrirModal('reserva')">+ Nueva reserva</button>
     </div>
 
@@ -57,7 +61,7 @@
           <th>Costo Total</th>
           <th>Estado Reserva</th>
           <th>Estado Pago</th>
-          <th>Acciones SQL / NoSQL</th>
+          <th>Acciones</th>
         </tr>
       </thead>
 
@@ -65,7 +69,7 @@
         @if (reservas.length === 0) {
           <tr>
             <td colspan="9" class="empty-table-cell">
-              No hay reservas registradas aún o el servidor backend no está en ejecución.
+              Aún no hay reservas registradas en el sistema.
             </td>
           </tr>
         }
@@ -103,10 +107,10 @@
                     Pagar
                   </button>
                   <button type="button" class="btn-table-mongo" (click)="abrirModal('detalleMongo', reserva)">
-                    Detalle NoSQL
+                    Logística
                   </button>
                   <button type="button" class="btn-table-review" (click)="abrirModal('resenaMongo', reserva)">
-                    ★ Reseña
+                    ★ Calificar
                   </button>
                   <button type="button" class="btn-table-cancel" (click)="cancelarReserva(reserva.idReserva)">
                     Cancelar
@@ -121,29 +125,29 @@
 
   </div>
 
-  <!-- ==================== SECCIÓN DOCUMENTAL MONGODB (RF-16, RF-17, RF-18) ==================== -->
+  <!-- ==================== SECCIÓN DE INDICADORES Y LOGÍSTICA DE EVENTOS ==================== -->
   <div class="tabla-contenedor mongo-section">
     <div class="tabla-header">
       <div>
-        <h2>Analítica y Eventos Documentales (MongoDB)</h2>
+        <h2>Estadísticas y Logística de Eventos</h2>
         <p class="mongo-subtitle">
-          Patrones: Extended Reference, Polymorphic (datos_extra) y Bounded Array + Agregaciones ($unwind, $group, $lookup)
+          Indicadores de demanda por espacio, servicios complementarios y calificaciones de los clientes
         </p>
       </div>
       <button type="button" class="btn-nueva-reserva" (click)="sincronizarSemillaMongo()">
-        ↻ Sincronizar / Seed MongoDB
+        ↻ Actualizar indicadores
       </button>
     </div>
 
     @if (!mongoDisponible) {
       <div class="empty-table-cell">
-        El contenedor / VM de MongoDB no está activo aún. Cuando lo inicies, pulsa "Sincronizar / Seed MongoDB".
+        No hay información de logística o calificaciones disponible en este momento.
       </div>
     } @else {
       <div class="mongo-grid-3">
-        <!-- Agregación 1: Espacios más reservados -->
+        <!-- Indicador 1: Espacios más reservados -->
         <div class="mongo-report-card">
-          <h3>1. Espacios Más Reservados ($group)</h3>
+          <h3>Espacios Más Reservados</h3>
           <table>
             <thead>
               <tr>
@@ -164,9 +168,9 @@
           </table>
         </div>
 
-        <!-- Agregación 2: Servicios más solicitados -->
+        <!-- Indicador 2: Servicios más solicitados -->
         <div class="mongo-report-card">
-          <h3>2. Servicios Más Solicitados ($unwind)</h3>
+          <h3>Servicios Más Solicitados</h3>
           <table>
             <thead>
               <tr>
@@ -187,9 +191,9 @@
           </table>
         </div>
 
-        <!-- Agregación 3: Calificaciones por espacio ($lookup) -->
+        <!-- Indicador 3: Calificaciones por espacio -->
         <div class="mongo-report-card">
-          <h3>3. Ranking de Reseñas ($lookup + $avg)</h3>
+          <h3>Calificación por Espacio</h3>
           <table>
             <thead>
               <tr>
@@ -211,18 +215,18 @@
         </div>
       </div>
 
-      <!-- Listado de Documentos detalles_evento (RF-16) -->
+      <!-- Listado de Planeación y Logística de Eventos -->
       <div class="mongo-docs-wrapper">
-        <h3>Documentos en colección <code>detalles_evento</code> ({{ detallesEventoMongo.length }})</h3>
+        <h3>Planeación y Logística de Eventos ({{ detallesEventoMongo.length }})</h3>
         <table>
           <thead>
             <tr>
               <th>Reserva</th>
               <th>Tipo</th>
               <th>Nombre del Evento</th>
-              <th>Espacio (Extended Ref)</th>
+              <th>Espacio</th>
               <th>Invitados Est.</th>
-              <th>Requerimientos / Agenda</th>
+              <th>Requerimientos y Agenda</th>
             </tr>
           </thead>
           <tbody>
@@ -251,7 +255,7 @@
   @if (modalActivo === 'reserva') {
     <div class="modal-backdrop">
       <div class="modal-box modal-box-lg">
-        <h3>Nueva Reserva (SP_CREAR_RESERVA)</h3>
+        <h3>Nueva Reserva</h3>
 
         <div class="modal-form">
           <div class="form-group">
@@ -326,7 +330,7 @@
   @if (modalActivo === 'pago') {
     <div class="modal-backdrop">
       <div class="modal-box">
-        <h3>Registrar Pago - Reserva #{{ formPago.idReserva }}</h3>
+        <h3>Registrar Pago · Reserva #{{ formPago.idReserva }}</h3>
 
         <div class="modal-form">
           <div class="form-group">
@@ -362,11 +366,11 @@
     </div>
   }
 
-  <!-- MODAL DETALLE EVENTO MONGODB (RF-16) -->
+  <!-- MODAL LOGÍSTICA DEL EVENTO -->
   @if (modalActivo === 'detalleMongo') {
     <div class="modal-backdrop">
       <div class="modal-box modal-box-lg">
-        <h3>Detalle Documental del Evento (MongoDB #{{ formDetalleMongo.idReserva }})</h3>
+        <h3>Logística del Evento · Reserva #{{ formDetalleMongo.idReserva }}</h3>
 
         <div class="modal-form">
           <div class="form-grid-2">
@@ -393,13 +397,13 @@
           </div>
 
           <div class="form-group">
-            <label>Invitado Principal / Anfitrión (Embebido)</label>
+            <label>Invitado Principal / Anfitrión</label>
             <input type="text" [(ngModel)]="formDetalleMongo.invitadoPrincipal">
           </div>
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label>Tipo Requerimiento</label>
+              <label>Categoría del Requerimiento</label>
               <select [(ngModel)]="formDetalleMongo.requerimientoTipo">
                 <option value="montaje">Montaje</option>
                 <option value="tecnico">Técnico</option>
@@ -409,13 +413,13 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Temática / Datos Extra (Polimórfico)</label>
+              <label>Temática del Evento</label>
               <input type="text" [(ngModel)]="formDetalleMongo.tematicaExtra">
             </div>
           </div>
 
           <div class="form-group">
-            <label>Descripción Requerimiento Especial</label>
+            <label>Descripción del Requerimiento Especial</label>
             <input type="text" [(ngModel)]="formDetalleMongo.requerimientoDescripcion">
           </div>
 
@@ -426,18 +430,18 @@
 
           <div class="modal-footer">
             <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
-            <button type="button" class="btn-modal-teal" (click)="guardarDetalleMongo()">Guardar en MongoDB</button>
+            <button type="button" class="btn-modal-teal" (click)="guardarDetalleMongo()">Guardar Detalles</button>
           </div>
         </div>
       </div>
     </div>
   }
 
-  <!-- MODAL RESEÑA MONGODB (RF-17) -->
+  <!-- MODAL CALIFICAR EXPERIENCIA -->
   @if (modalActivo === 'resenaMongo') {
     <div class="modal-backdrop">
       <div class="modal-box">
-        <h3>Registrar Reseña Post-Evento (MongoDB #{{ formResenaMongo.idReserva }})</h3>
+        <h3>Calificar Experiencia · Reserva #{{ formResenaMongo.idReserva }}</h3>
 
         <div class="modal-form">
           <div class="form-group">
@@ -462,13 +466,13 @@
           </div>
 
           <div class="form-group">
-            <label>Etiquetas (separadas por coma)</label>
+            <label>Aspectos destacados (separados por coma)</label>
             <input type="text" [(ngModel)]="formResenaMongo.etiquetasTexto">
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn-modal-cancel" (click)="abrirModal('ninguno')">Cancelar</button>
-            <button type="button" class="btn-modal-primary" (click)="guardarResenaMongo()">Guardar Reseña</button>
+            <button type="button" class="btn-modal-primary" (click)="guardarResenaMongo()">Guardar Calificación</button>
           </div>
         </div>
       </div>

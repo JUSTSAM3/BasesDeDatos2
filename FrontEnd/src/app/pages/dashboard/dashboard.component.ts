@@ -1,7 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import {
   BackendService,
@@ -59,7 +59,7 @@ export class DashboardComponent implements OnInit {
   tiposEspacio: TipoEspacio[] = [];
   servicios: ServicioAdicional[] = [];
 
-  // Datos y Reportes Documentales (MongoDB)
+  // Estadísticas y Logística de Eventos
   detallesEventoMongo: DetalleEventoNoSql[] = [];
   resenasMongo: ResenaNoSql[] = [];
   reporteEspaciosMongo: ReporteEspacioNoSql[] = [];
@@ -69,6 +69,7 @@ export class DashboardComponent implements OnInit {
 
   mensajeAlerta = '';
   esError = false;
+  empleadoSesion: Empleado | null = null;
 
   // Modales / Formularios
   modalActivo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio' | 'detalleMongo' | 'resenaMongo' = 'ninguno';
@@ -137,11 +138,36 @@ export class DashboardComponent implements OnInit {
     etiquetasTexto: 'puntualidad, excelente servicio'
   };
 
-  constructor(private backendService: BackendService) {}
+  constructor(
+    private backendService: BackendService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
+    const rawSesion = sessionStorage.getItem('staff_sesion');
+    if (!rawSesion) {
+      this.router.navigate(['/']);
+      return;
+    }
+    try {
+      this.empleadoSesion = JSON.parse(rawSesion);
+      if (this.empleadoSesion?.idEmpleado) {
+        this.formReserva.idEmpleado = this.empleadoSesion.idEmpleado;
+      }
+    } catch {
+      sessionStorage.removeItem('staff_sesion');
+      this.router.navigate(['/']);
+      return;
+    }
+
     this.cargarTodo();
     this.cargarDatosMongo();
+  }
+
+  cerrarSesionStaff(): void {
+    sessionStorage.removeItem('staff_sesion');
+    this.router.navigate(['/']);
   }
 
   cargarTodo(): void {
@@ -165,7 +191,9 @@ export class DashboardComponent implements OnInit {
         }
 
         this.empleados = res.empleados || [];
-        if (this.empleados.length > 0 && this.empleados[0].idEmpleado) {
+        if (this.empleadoSesion?.idEmpleado) {
+          this.formReserva.idEmpleado = this.empleadoSesion.idEmpleado;
+        } else if (this.empleados.length > 0 && this.empleados[0].idEmpleado) {
           this.formReserva.idEmpleado = this.empleados[0].idEmpleado;
         }
 
@@ -182,9 +210,11 @@ export class DashboardComponent implements OnInit {
         this.servicios = res.servicios || [];
 
         this.actualizarMetricas();
+        this.cdr.detectChanges();
         this.cargarReservas();
       },
       error: () => {
+        this.cdr.detectChanges();
         this.cargarReservas();
       }
     });
@@ -217,8 +247,11 @@ export class DashboardComponent implements OnInit {
         });
 
         this.actualizarMetricas();
+        this.cdr.detectChanges();
       },
-      error: () => {}
+      error: () => {
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -237,9 +270,11 @@ export class DashboardComponent implements OnInit {
         this.reporteEspaciosMongo = res.repEspacios || [];
         this.reporteServiciosMongo = res.repServicios || [];
         this.reporteCalificacionesMongo = res.repCalificaciones || [];
+        this.cdr.detectChanges();
       },
       error: () => {
         this.mongoDisponible = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -263,12 +298,15 @@ export class DashboardComponent implements OnInit {
   mostrarMensaje(msg: string, error = false): void {
     this.mensajeAlerta = msg;
     this.esError = error;
+    this.cdr.detectChanges();
     setTimeout(() => {
-      if (this.mensajeAlerta === msg) this.mensajeAlerta = '';
+      if (this.mensajeAlerta === msg) {
+        this.mensajeAlerta = '';
+        this.cdr.detectChanges();
+      }
     }, 6000);
   }
 
-  // ==================== ACCIONES RELACIONALES ====================
   abrirModal(
     tipo: 'ninguno' | 'reserva' | 'pago' | 'cliente' | 'espacio' | 'detalleMongo' | 'resenaMongo',
     reserva?: ReservaTabla
@@ -408,7 +446,6 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // ==================== ACCIONES NOSQL (MONGODB) ====================
   guardarDetalleMongo(): void {
     const espCat = this.espacios.find((e) => e.idEspacio === this.formDetalleMongo.idEspacio);
 
@@ -447,11 +484,11 @@ export class DashboardComponent implements OnInit {
     this.backendService.guardarDetalleEvento(payload).subscribe({
       next: (doc) => {
         this.modalActivo = 'ninguno';
-        this.mostrarMensaje(`Detalle documental guardado en MongoDB para la reserva #${doc.idReserva}.`);
+        this.mostrarMensaje(`Logística del evento guardada para la reserva #${doc.idReserva}.`);
         this.cargarDatosMongo();
       },
       error: (err) => {
-        this.mostrarMensaje(err.error?.detail || 'Error al guardar en MongoDB (verifica la VM de Mongo).', true);
+        this.mostrarMensaje(err.error?.detail || 'No fue posible guardar los detalles del evento.', true);
       }
     });
   }
@@ -480,11 +517,11 @@ export class DashboardComponent implements OnInit {
     this.backendService.guardarResena(payload).subscribe({
       next: (res) => {
         this.modalActivo = 'ninguno';
-        this.mostrarMensaje(`Reseña (${res.calificacionGeneral}/5 ★) registrada en MongoDB para la reserva #${res.idReserva}.`);
+        this.mostrarMensaje(`Calificación (${res.calificacionGeneral}/5 ★) registrada para la reserva #${res.idReserva}.`);
         this.cargarDatosMongo();
       },
       error: (err) => {
-        this.mostrarMensaje(err.error?.detail || 'Error al registrar la reseña en MongoDB.', true);
+        this.mostrarMensaje(err.error?.detail || 'No fue posible registrar la calificación.', true);
       }
     });
   }
@@ -492,22 +529,11 @@ export class DashboardComponent implements OnInit {
   sincronizarSemillaMongo(): void {
     this.backendService.inicializarMongo().subscribe({
       next: () => {
-        this.mostrarMensaje('Índices y documentos semilla verificados en MongoDB.');
+        this.mostrarMensaje('Estadísticas y logística de eventos actualizadas.');
         this.cargarDatosMongo();
       },
       error: () => {
-        this.mostrarMensaje('No se pudo conectar con MongoDB. Verifica que el contenedor esté activo.', true);
-      }
-    });
-  }
-
-  probarRutinasRdbms(): void {
-    this.backendService.ejecutarPruebasRdbms().subscribe({
-      next: (res) => {
-        this.mostrarMensaje(`[PostgreSQL EDT 7.1] ${res.message} (${res.executionTimeMs} ms)`);
-      },
-      error: (err) => {
-        this.mostrarMensaje(err.error?.error || 'Fallo al ejecutar la suite de pruebas RDBMS.', true);
+        this.mostrarMensaje('No fue posible actualizar los indicadores en este momento.', true);
       }
     });
   }
