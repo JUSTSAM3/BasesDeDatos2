@@ -1,10 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import {
   BackendService,
-  Cliente,
   DisponibilidadResponseDTO,
   Espacio,
   ReservaRequestDTO,
@@ -45,7 +44,7 @@ export class HomeComponent implements OnInit {
 
   servicios: ServicioCard[] = [];
 
-  // Formulario de disponibilidad (RF-05: fn_validar_disponibilidad)
+  // Formulario de disponibilidad
   busqueda = {
     idEspacio: 1,
     fecha: '',
@@ -59,7 +58,7 @@ export class HomeComponent implements OnInit {
   resultadoDisponibilidad: DisponibilidadResponseDTO | null = null;
   errorDisponibilidad = '';
 
-  // Modal de Reserva rápida (SP_CREAR_RESERVA)
+  // Modal de Reserva rápida
   mostrarModalReserva = false;
   creandoReserva = false;
   mensajeReservaExito = '';
@@ -87,7 +86,8 @@ export class HomeComponent implements OnInit {
 
   constructor(
     private backendService: BackendService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -127,11 +127,13 @@ export class HomeComponent implements OnInit {
         } else {
           this.espacios = [];
         }
+        this.cdr.detectChanges();
       },
       error: () => {
         this.cargandoEspacios = false;
         this.errorCargaEspacios = true;
         this.espacios = [];
+        this.cdr.detectChanges();
       }
     });
 
@@ -146,8 +148,11 @@ export class HomeComponent implements OnInit {
             precioUnitario: s.precioUnitario
           }));
         }
+        this.cdr.detectChanges();
       },
-      error: () => {}
+      error: () => {
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -172,10 +177,12 @@ export class HomeComponent implements OnInit {
       next: (res) => {
         this.consultandoDisponibilidad = false;
         this.resultadoDisponibilidad = res;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.consultandoDisponibilidad = false;
         this.errorDisponibilidad = err.error?.message || err.error?.detail || 'No se pudo conectar con el servidor para validar disponibilidad.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -223,6 +230,7 @@ export class HomeComponent implements OnInit {
         error: (err) => {
           this.creandoReserva = false;
           this.mensajeReservaError = err.error?.message || 'No se pudo registrar el cliente. Verifica los datos.';
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -239,7 +247,7 @@ export class HomeComponent implements OnInit {
     const payload: ReservaRequestDTO = {
       idCliente: idCliente,
       idEspacio: Number(this.nuevaReserva.idEspacio),
-      idEmpleado: null, // Nullable en BD (V4) para asignación automática por backend
+      idEmpleado: null,
       fechaInicio: `${this.nuevaReserva.fecha}T${this.nuevaReserva.horaInicio}:00`,
       fechaFin: `${this.nuevaReserva.fecha}T${this.nuevaReserva.horaFin}:00`,
       servicios: Number(this.nuevaReserva.idServicio) > 0
@@ -251,15 +259,27 @@ export class HomeComponent implements OnInit {
       next: (res: ReservaResponseDTO) => {
         this.creandoReserva = false;
         this.mensajeReservaExito = `¡Reserva #${res.idReserva} creada con éxito! Estado: ${res.estado} | Costo Total: $${Number(res.costoTotal).toLocaleString('es-CO')}`;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         this.creandoReserva = false;
-        this.mensajeReservaError = err.error?.message || err.error?.detail || 'Error al crear la reserva en la base de datos.';
+        this.mensajeReservaError = err.error?.message || err.error?.detail || 'No fue posible procesar tu reserva. Verifica los datos seleccionados.';
+        this.cdr.detectChanges();
       }
     });
   }
 
   irADashboard(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  irASeccion(idSeccion: string, event?: Event): void {
+    if (event) {
+      event.preventDefault();
+    }
+    const elemento = document.getElementById(idSeccion);
+    if (elemento) {
+      elemento.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 }

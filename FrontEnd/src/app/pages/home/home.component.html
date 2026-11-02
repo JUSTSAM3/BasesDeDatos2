@@ -15,14 +15,14 @@
     </a>
 
     <nav class="nav-links">
-      <a href="#inicio">Inicio</a>
-      <a href="#espacios">Espacios</a>
-      <a href="#experiencias">Experiencias</a>
-      <a routerLink="/dashboard">Dashboard BD</a>
+      <a href="#inicio" (click)="irASeccion('inicio', $event)">Inicio</a>
+      <a href="#espacios" (click)="irASeccion('espacios', $event)">Espacios</a>
+      <a href="#experiencias" (click)="irASeccion('experiencias', $event)">Experiencias</a>
+      <a href="#como-funciona" (click)="irASeccion('como-funciona', $event)">Cómo funciona</a>
     </nav>
 
-    <button class="nav-account" (click)="irADashboard()">
-      Panel de Gestión
+    <button class="nav-account" (click)="abrirModalReserva()">
+      Reservar ahora
       <span>↗</span>
     </button>
 
@@ -56,7 +56,7 @@
 
         <div class="hero-actions">
 
-          <a class="button-primary" href="#espacios">
+          <a class="button-primary" href="#espacios" (click)="irASeccion('espacios', $event)">
             Explorar espacios
             <span>→</span>
           </a>
@@ -70,7 +70,7 @@
       </div>
 
 
-      <!-- BUSCADOR CONECTADO A fn_validar_disponibilidad -->
+      <!-- BUSCADOR DE DISPONIBILIDAD -->
       <div class="search-card">
 
         <div class="search-card-top">
@@ -127,7 +127,7 @@
         </div>
 
         <button class="search-button" (click)="verificarDisponibilidad()" [disabled]="consultandoDisponibilidad">
-          {{ consultandoDisponibilidad ? 'Validando en BD...' : 'Buscar disponibilidad' }}
+          {{ consultandoDisponibilidad ? 'Consultando horario...' : 'Buscar disponibilidad' }}
           <span>↗</span>
         </button>
 
@@ -177,7 +177,7 @@
 
 
     <!-- INTRO -->
-    <section class="intro">
+    <section class="intro" id="espacios">
 
       <div class="intro-label">
         <span>02</span>
@@ -203,15 +203,15 @@
     </section>
 
 
-    <!-- ESPACIOS DESDE POSTGRESQL -->
+    <!-- CATÁLOGO DE ESPACIOS -->
     @if (cargandoEspacios) {
       <div class="spaces-loading-state">
-        <p>Cargando espacios desde PostgreSQL...</p>
+        <p>Cargando espacios...</p>
       </div>
     } @else if (errorCargaEspacios) {
       <div class="spaces-error-state">
         <h3>No pudimos conectar con el servidor</h3>
-        <p>Verifica que el servicio backend de PostgreSQL esté en ejecución.</p>
+        <p>En este momento no es posible cargar el catálogo de espacios. Intenta nuevamente en unos segundos.</p>
         <button type="button" class="btn-retry-connection" (click)="cargarDatosRelacionales()">
           ↻ Reintentar conexión
         </button>
@@ -222,7 +222,7 @@
         <p>Intenta reducir el número de invitados o cambiar el tipo de evento en el buscador.</p>
       </div>
     } @else {
-      <section class="spaces" id="espacios">
+      <section class="spaces">
 
         @for (espacio of espaciosFiltrados; track espacio.idEspacio) {
 
@@ -286,14 +286,14 @@
 
 
     <div class="center-action">
-      <button class="outline-button" (click)="irADashboard()">
-        Gestionar espacios y reservas
+      <button class="outline-button" (click)="abrirModalReserva()">
+        Personalizar mi reserva
         <span>→</span>
       </button>
     </div>
 
 
-    <!-- EXPERIENCE (SERVICIOS ADICIONALES DESDE BD) -->
+    <!-- EXPERIENCE (SERVICIOS ADICIONALES) -->
     <section class="experience" id="experiencias">
 
       <div class="experience-top">
@@ -356,7 +356,7 @@
 
 
     <!-- HOW -->
-    <section class="how">
+    <section class="how" id="como-funciona">
 
       <div class="how-header">
 
@@ -465,8 +465,8 @@
           para adaptarse a distintos tipos de experiencias.
         </p>
 
-        <button class="button-dark" (click)="irADashboard()">
-          Ir al Dashboard
+        <button class="button-dark" (click)="abrirModalReserva()">
+          Agendar mi evento
           <span>→</span>
         </button>
 
@@ -497,12 +497,12 @@
 
   </main>
 
-  <!-- MODAL DE CREACIÓN DE RESERVA (SP_CREAR_RESERVA) -->
+  <!-- MODAL DE CREACIÓN DE RESERVA -->
   @if (mostrarModalReserva) {
     <div class="modal-backdrop">
       <div class="modal-card">
         <div class="modal-header">
-          <h3 class="modal-title">Confirmar Reserva (PostgreSQL)</h3>
+          <h3 class="modal-title">Confirmar Reserva</h3>
           <button type="button" class="modal-close-btn" (click)="cerrarModalReserva()">✕</button>
         </div>
 
@@ -606,7 +606,7 @@
               Cerrar
             </button>
             <button type="button" class="btn-primary" (click)="confirmarReserva()" [disabled]="creandoReserva">
-              {{ creandoReserva ? 'Procesando SP...' : 'Confirmar Reserva' }}
+              {{ creandoReserva ? 'Confirmando reserva...' : 'Confirmar Reserva' }}
             </button>
           </div>
         </div>
@@ -636,15 +636,15 @@
 
       <div>
         <span>EXPLORA</span>
-        <a href="#inicio">Inicio</a>
-        <a href="#espacios">Espacios</a>
-        <a href="#experiencias">Servicios</a>
+        <a href="#inicio" (click)="irASeccion('inicio', $event)">Inicio</a>
+        <a href="#espacios" (click)="irASeccion('espacios', $event)">Espacios</a>
+        <a href="#experiencias" (click)="irASeccion('experiencias', $event)">Servicios</a>
       </div>
 
       <div>
-        <span>GESTIÓN</span>
-        <a routerLink="/dashboard">Dashboard y Reservas</a>
+        <span>ATENCIÓN</span>
         <a (click)="abrirModalReserva()">Nueva Reserva</a>
+        <a routerLink="/dashboard">Acceso Staff</a>
       </div>
 
       <div>
