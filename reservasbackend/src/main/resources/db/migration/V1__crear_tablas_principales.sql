@@ -101,7 +101,14 @@ CREATE TABLE IF NOT EXISTS pagos (
 );
 
 -- Indices para optimizacion de consultas frecuentes
+-- Nota: la busqueda por id_espacio la cubre el indice compuesto ix_reservas_rango_fechas (V3),
+-- cuyo primer campo es id_espacio, por eso no se crea un indice simple adicional.
 CREATE INDEX IF NOT EXISTS idx_reservas_cliente ON reservas(id_cliente);
-CREATE INDEX IF NOT EXISTS idx_reservas_espacio ON reservas(id_espacio);
 CREATE INDEX IF NOT EXISTS idx_reservas_fechas ON reservas(fecha_inicio, fecha_fin);
 CREATE INDEX IF NOT EXISTS idx_espacios_sucursal ON espacios(id_sucursal);
+
+-- Indices sobre llaves foraneas (PostgreSQL no los crea automaticamente):
+-- aceleran los JOIN de los reportes y evitan bloqueos/escaneos completos al borrar o actualizar el padre.
+CREATE INDEX IF NOT EXISTS idx_reservas_empleado ON reservas(id_empleado);
+CREATE INDEX IF NOT EXISTS idx_reserva_servicios_servicio ON reserva_servicios(id_servicio);
+CREATE INDEX IF NOT EXISTS idx_pagos_factura ON pagos(id_factura);

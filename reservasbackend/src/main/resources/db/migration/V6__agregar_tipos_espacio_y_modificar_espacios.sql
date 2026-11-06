@@ -19,5 +19,8 @@ ALTER TABLE espacios ADD COLUMN id_tipo_espacio INT NOT NULL DEFAULT 1;
 ALTER TABLE espacios
     ADD CONSTRAINT fk_espacios_tipo FOREIGN KEY (id_tipo_espacio) REFERENCES tipos_espacio(id_tipo_espacio);
 
+-- Indice sobre la nueva llave foranea (filtros y JOIN de espacios por tipo)
+CREATE INDEX IF NOT EXISTS idx_espacios_tipo ON espacios(id_tipo_espacio);
+
 -- Eliminamos la antigua columna 'tipo' tipo String (varchar)
 ALTER TABLE espacios DROP COLUMN IF EXISTS tipo;
