@@ -36,22 +36,43 @@ BEFORE INSERT OR UPDATE ON reserva_servicios
 FOR EACH ROW
 EXECUTE FUNCTION fn_trg_calcular_subtotal();
 
+-- Mantiene sincronizados reservas.costo_total y facturas.total (si la reserva
+-- ya fue facturada) cada vez que se agregan, modifican o eliminan servicios.
+-- Si un UPDATE cambia el id_reserva del servicio, recalcula ambas reservas.
 CREATE OR REPLACE FUNCTION fn_trg_actualizar_total_reserva()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
+    v_reserva_nueva INT;
+    v_reserva_anterior INT;
     v_reserva_id INT;
+    v_nuevo_total DECIMAL(12,2);
 BEGIN
-    IF TG_OP = 'DELETE' THEN
-        v_reserva_id := OLD.id_reserva;
-    ELSE
-        v_reserva_id := NEW.id_reserva;
+    IF TG_OP IN ('INSERT', 'UPDATE') THEN
+        v_reserva_nueva := NEW.id_reserva;
+    END IF;
+    IF TG_OP IN ('UPDATE', 'DELETE') THEN
+        v_reserva_anterior := OLD.id_reserva;
     END IF;
 
-    UPDATE reservas
-    SET costo_total = fn_calcular_costo_total(v_reserva_id)
-    WHERE id_reserva = v_reserva_id;
+    FOR v_reserva_id IN
+        SELECT DISTINCT x.id_reserva
+        FROM (VALUES (v_reserva_anterior), (v_reserva_nueva)) AS x(id_reserva)
+        WHERE x.id_reserva IS NOT NULL
+    LOOP
+        v_nuevo_total := COALESCE(fn_calcular_costo_total(v_reserva_id), 0.00);
+
+        UPDATE reservas
+        SET costo_total = v_nuevo_total
+        WHERE id_reserva = v_reserva_id;
+
+        -- Sincroniza la factura asociada (relacion 1:1) solo si existe y cambio el valor
+        UPDATE facturas
+        SET total = v_nuevo_total
+        WHERE id_reserva = v_reserva_id
+          AND total IS DISTINCT FROM v_nuevo_total;
+    END LOOP;
 
     IF TG_OP = 'DELETE' THEN
         RETURN OLD;
