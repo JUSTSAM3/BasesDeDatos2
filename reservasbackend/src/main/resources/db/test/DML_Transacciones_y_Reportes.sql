@@ -3,9 +3,6 @@
 -- SISTEMA DE GESTIÓN DE RESERVAS DE ESPACIOS PARA EVENTOS
 -- SCRIPT DE INSERCIONES (DML), TRANSACCIONES (COMMIT / ROLLBACK) Y REPORTES SQL
 -- ==============================================================================
--- Cumple con los entregables de Fase 1 (Documento SQL de reportes) y Fase 2
--- (Scripts de inserción, manejo de transacciones COMMIT/ROLLBACK y excepciones).
--- ==============================================================================
 
 -- ==============================================================================
 -- 1. DEMOSTRACIÓN DE TRANSACCIÓN EXITOSA CON COMMIT (ACID)
@@ -89,7 +86,7 @@ FROM clientes
 WHERE identificacion = 'CC-TEMP-ROLLBACK';
 
 -- ==============================================================================
--- 3. CONSULTAS Y REPORTES GERENCIALES (ENTREGABLE REPORTES SQL)
+-- 3. CONSULTAS Y REPORTES GERENCIALES
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
@@ -164,4 +161,59 @@ FROM empleados emp
 LEFT JOIN reservas r ON emp.id_empleado = r.id_empleado
 GROUP BY emp.id_empleado, emp.nombre, emp.cargo
 ORDER BY valor_gestionado DESC;
+
+-- ------------------------------------------------------------------------------
+-- REPORTE 5: Historial Detallado de Reservas y Pagos por Cliente (RF-03)
+-- Vista vw_historial_cliente que consolida información de reservas, facturas,
+-- pagos y saldo pendiente con estado de pago calculado por función almacenada.
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE VIEW vw_historial_cliente AS
+SELECT
+    c.id_cliente,
+    c.tipo_cliente,
+    c.identificacion,
+    c.nombre_razon_social,
+    r.id_reserva,
+    e.nombre AS espacio,
+    s.nombre AS sucursal,
+    r.fecha_inicio,
+    r.fecha_fin,
+    r.estado AS estado_reserva,
+    r.costo_total,
+    COALESCE(f.numero_factura, 'SIN-EMITIR') AS numero_factura,
+    COALESCE(SUM(p.monto), 0.00) AS monto_abonado,
+    r.costo_total - COALESCE(SUM(p.monto), 0.00) AS saldo_pendiente,
+    fn_estado_pago(r.id_reserva) AS estado_pago
+FROM clientes c
+JOIN reservas r ON c.id_cliente = r.id_cliente
+JOIN espacios e ON r.id_espacio = e.id_espacio
+JOIN sucursales s ON e.id_sucursal = s.id_sucursal
+LEFT JOIN facturas f ON r.id_reserva = f.id_reserva
+LEFT JOIN pagos p ON f.id_factura = p.id_factura
+GROUP BY c.id_cliente, c.tipo_cliente, c.identificacion, c.nombre_razon_social,
+         r.id_reserva, e.nombre, s.nombre, r.fecha_inicio, r.fecha_fin,
+         r.estado, r.costo_total, f.numero_factura
+ORDER BY c.id_cliente, r.fecha_inicio DESC;
+
+-- Consulta ejecutiva sobre la vista de historial de clientes
+SELECT * FROM vw_historial_cliente;
+
+-- ------------------------------------------------------------------------------
+-- REPORTE 6: Ocupación Mensual y Horas Efectivas Alquiladas por Espacio
+-- Agrupa por año-mes y recinto calculando horas efectivas y facturación neta.
+-- ------------------------------------------------------------------------------
+SELECT
+    TO_CHAR(r.fecha_inicio, 'YYYY-MM') AS periodo_mensual,
+    s.nombre AS sucursal,
+    e.nombre AS espacio,
+    COUNT(r.id_reserva) AS eventos_realizados,
+    ROUND(SUM(EXTRACT(EPOCH FROM (r.fecha_fin - r.fecha_inicio)) / 3600.0)::NUMERIC, 1) AS horas_alquiladas,
+    SUM(r.costo_total) AS facturacion_periodo
+FROM reservas r
+JOIN espacios e ON r.id_espacio = e.id_espacio
+JOIN sucursales s ON e.id_sucursal = s.id_sucursal
+WHERE r.estado IN ('confirmada', 'finalizada')
+GROUP BY TO_CHAR(r.fecha_inicio, 'YYYY-MM'), s.nombre, e.nombre
+ORDER BY periodo_mensual DESC, facturacion_periodo DESC;
+
 
