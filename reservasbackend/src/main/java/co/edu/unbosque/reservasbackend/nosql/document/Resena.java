@@ -10,7 +10,6 @@ import java.util.List;
 
 /**
  * Documento MongoDB para la coleccion 'resenas'.
- * Corresponde a la especificacion EDT 4.1.1 (RF-17, RF-18).
  */
 @Document(collection = "resenas")
 public class Resena {
@@ -18,15 +17,15 @@ public class Resena {
     @Id
     private String id;
 
-    @Indexed(unique = true)
+    @Indexed(name = "ux_resena_reserva", unique = true)
     @Field("id_reserva")
     private Integer idReserva;
 
-    @Indexed
+    @Indexed(name = "ix_resena_cliente")
     @Field("id_cliente")
     private Integer idCliente;
 
-    @Indexed
+    @Indexed(name = "ix_resena_espacio")
     @Field("id_espacio")
     private Integer idEspacio;
 

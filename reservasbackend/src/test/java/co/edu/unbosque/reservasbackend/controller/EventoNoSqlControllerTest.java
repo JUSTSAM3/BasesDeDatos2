@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -118,6 +119,43 @@ public class EventoNoSqlControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].nombreServicio").value("Catering Gourmet"))
                 .andExpect(jsonPath("$[0].unidadesTotalesSolicitadas").value(370));
+    }
+
+    @Test
+    public void testEliminarResenaPorReserva_Exitoso() throws Exception {
+        Mockito.when(eventoNoSqlService.eliminarResenaPorReserva(101)).thenReturn(true);
+
+        mockMvc.perform(delete("/api/nosql/resenas/reserva/101"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idReserva").value(101))
+                .andExpect(jsonPath("$.eliminado").value(true));
+    }
+
+    @Test
+    public void testEliminarResenaPorReserva_NoEncontrada() throws Exception {
+        Mockito.when(eventoNoSqlService.eliminarResenaPorReserva(999)).thenReturn(false);
+
+        mockMvc.perform(delete("/api/nosql/resenas/reserva/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void testBusquedaAvanzadaEventos_Returns200() throws Exception {
+        DetalleEvento ev = new DetalleEvento();
+        ev.setIdReserva(102);
+        ev.setTipoEvento("conferencia");
+        ev.setNombreEvento("Summit IA");
+
+        Mockito.when(eventoNoSqlService.consultarEventosAvanzado(any(), any(), any(), any(), any()))
+                .thenReturn(List.of(ev));
+
+        mockMvc.perform(get("/api/nosql/detalles-evento/busqueda-avanzada")
+                .param("tiposEvento", "conferencia", "corporativo")
+                .param("minInvitados", "100")
+                .param("estadoReserva", "confirmada"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].idReserva").value(102))
+                .andExpect(jsonPath("$[0].tipoEvento").value("conferencia"));
     }
 }
 

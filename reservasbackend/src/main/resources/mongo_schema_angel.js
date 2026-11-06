@@ -274,7 +274,135 @@ db.resenas.updateOne(
 );
 
 // ---------------------------------------------------------------------
-// 4. Pipelines de Agregación (RF-18)
+// 4. Consultas Complejas con Filtros Combinados y Proyección
+// ---------------------------------------------------------------------
+print("\n--- CONSULTA COMPLEJA: Eventos confirmados con >100 invitados y proyección ---");
+printjson(
+  db.detalles_evento.find(
+    {
+      $and: [
+        { tipo_evento: { $in: ["conferencia", "social", "boda"] } },
+        { estado_reserva: "confirmada" },
+        { num_invitados_estimado: { $gte: 100 } },
+        { fecha_inicio: { $gte: new Date("2026-01-01T00:00:00Z") } }
+      ]
+    },
+    {
+      id_reserva: 1,
+      id_cliente: 1,
+      tipo_evento: 1,
+      nombre_evento: 1,
+      "espacio.nombre": 1,
+      "espacio.ciudad": 1,
+      num_invitados_estimado: 1,
+      fecha_inicio: 1,
+      fecha_fin: 1,
+      estado_reserva: 1,
+      _id: 0
+    }
+  ).sort({ fecha_inicio: 1 }).toArray()
+);
+
+// ---------------------------------------------------------------------
+// 5. Ejemplos de Operaciones CRUD
+// ---------------------------------------------------------------------
+
+// --- CRUD: Colección detalles_evento ---
+
+// CREATE: Inserción de un nuevo detalle de evento
+db.detalles_evento.insertOne({
+  id_reserva: Int32(199),
+  id_cliente: Int32(1),
+  espacio: {
+    id_espacio: Int32(2),
+    nombre: "Terraza Nómada 93",
+    tipo: "Terraza Lounge",
+    id_sucursal: Int32(2),
+    ciudad: "Bogotá"
+  },
+  tipo_evento: "social",
+  nombre_evento: "Celebración de Prueba CRUD",
+  fecha_inicio: new Date("2026-12-01T18:00:00Z"),
+  fecha_fin: new Date("2026-12-01T23:00:00Z"),
+  num_invitados_estimado: Int32(60),
+  servicios: [
+    { id_servicio: Int32(2), nombre: "Sonido e Iluminación Profesional", cantidad: Int32(1) }
+  ],
+  requerimientos_especiales: [
+    { tipo: "montaje", descripcion: "Mobiliario tipo lounge", estado: "pendiente" }
+  ],
+  estado_reserva: "confirmada",
+  creado_en: new Date()
+});
+
+// READ: Consulta por id_reserva
+print("\n--- READ detalles_evento (id_reserva 199) ---");
+printjson(db.detalles_evento.findOne({ id_reserva: Int32(199) }));
+
+// UPDATE: Modificación con $set y $push
+db.detalles_evento.updateOne(
+  { id_reserva: Int32(199) },
+  {
+    $set: {
+      num_invitados_estimado: Int32(75),
+      actualizado_en: new Date()
+    },
+    $push: {
+      requerimientos_especiales: {
+        tipo: "tecnico",
+        descripcion: "Micrófono inalámbrico adicional",
+        estado: "pendiente"
+      }
+    }
+  }
+);
+
+// DELETE: Eliminación de documento de prueba
+db.detalles_evento.deleteOne({ id_reserva: Int32(199) });
+
+// --- CRUD: Colección resenas ---
+
+// CREATE: Inserción de una nueva reseña post-evento
+db.resenas.insertOne({
+  id_reserva: Int32(199),
+  id_cliente: Int32(1),
+  id_espacio: Int32(2),
+  calificacion_general: Int32(4),
+  calificaciones: {
+    espacio: Int32(4),
+    servicios: Int32(5),
+    coordinacion: Int32(4),
+    precio: Int32(4)
+  },
+  comentario: "Excelente servicio y vista, muy recomendado.",
+  recomendaria: true,
+  etiquetas: ["vista panorámica", "buen servicio"],
+  fecha_resena: new Date()
+});
+
+// READ: Consulta de reseñas de un espacio
+print("\n--- READ resenas (id_espacio 2) ---");
+printjson(db.resenas.find({ id_espacio: Int32(2) }).toArray());
+
+// UPDATE: Respuesta administrativa a la reseña con $set
+db.resenas.updateOne(
+  { id_reserva: Int32(199) },
+  {
+    $set: {
+      respuesta_admin: {
+        texto: "¡Muchas gracias por sus comentarios! Nos alegra que disfrutaran de la Terraza.",
+        id_empleado: Int32(3),
+        fecha: new Date()
+      }
+    }
+  }
+);
+
+// DELETE: Eliminación de reseña por reserva
+db.resenas.deleteOne({ id_reserva: Int32(199) });
+
+// ---------------------------------------------------------------------
+// 6. Pipelines de Agregación
 // ---------------------------------------------------------------------
 
 print("\n--- AGREGACIÓN 1: Espacios más reservados ---");
