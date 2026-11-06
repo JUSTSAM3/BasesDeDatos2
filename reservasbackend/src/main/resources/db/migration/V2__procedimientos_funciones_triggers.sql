@@ -1,5 +1,5 @@
 -- =====================================================================
--- EDT 3.3 / 6.1 - Procedimientos, Funciones y Triggers en PostgreSQL 16
+-- Procedimientos, Funciones y Triggers en PostgreSQL 16
 -- Script Flyway V2
 -- =====================================================================
 
@@ -301,3 +301,36 @@ BEGIN
     END IF;
 END;
 $$;
+
+-- ---------------------------------------------------------------------
+-- 10. VISTA: vw_historial_cliente (RF-03)
+-- Consolida el historial de reservas de clientes con sus facturas, pagos,
+-- saldos pendientes y estado de pago calculado.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE VIEW vw_historial_cliente AS
+SELECT
+    c.id_cliente,
+    c.tipo_cliente,
+    c.identificacion,
+    c.nombre_razon_social,
+    r.id_reserva,
+    e.nombre AS espacio,
+    s.nombre AS sucursal,
+    r.fecha_inicio,
+    r.fecha_fin,
+    r.estado AS estado_reserva,
+    r.costo_total,
+    COALESCE(f.numero_factura, 'SIN-EMITIR') AS numero_factura,
+    COALESCE(SUM(p.monto), 0.00) AS monto_abonado,
+    r.costo_total - COALESCE(SUM(p.monto), 0.00) AS saldo_pendiente,
+    fn_estado_pago(r.id_reserva) AS estado_pago
+FROM clientes c
+JOIN reservas r ON c.id_cliente = r.id_cliente
+JOIN espacios e ON r.id_espacio = e.id_espacio
+JOIN sucursales s ON e.id_sucursal = s.id_sucursal
+LEFT JOIN facturas f ON r.id_reserva = f.id_reserva
+LEFT JOIN pagos p ON f.id_factura = p.id_factura
+GROUP BY c.id_cliente, c.tipo_cliente, c.identificacion, c.nombre_razon_social,
+         r.id_reserva, e.nombre, s.nombre, r.fecha_inicio, r.fecha_fin,
+         r.estado, r.costo_total, f.numero_factura;
+

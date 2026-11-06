@@ -19,10 +19,16 @@ $$;
 
 -- Revocar privilegios excesivos por defecto
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON DATABASE reservas_db FROM PUBLIC;
 
--- Permisos de conexión y uso de esquema
-GRANT CONNECT ON DATABASE reservas_db TO app_reservas, reportes_reservas;
+-- Revocar y conceder conexión dinámicamente sobre la base de datos actual (portable)
+DO $$
+BEGIN
+    EXECUTE format('REVOKE ALL ON DATABASE %I FROM PUBLIC', current_database());
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO app_reservas, reportes_reservas', current_database());
+END
+$$;
+
+-- Permisos de uso de esquema
 GRANT USAGE ON SCHEMA public TO app_reservas, reportes_reservas;
 
 -- Permisos DML para app_reservas en TODAS las tablas necesarias

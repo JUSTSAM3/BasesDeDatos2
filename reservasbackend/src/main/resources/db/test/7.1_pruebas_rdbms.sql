@@ -1,5 +1,5 @@
 -- =====================================================================
--- EDT 7.1 - Pruebas del RDBMS (PostgreSQL 16)
+-- Suite de Pruebas del RDBMS (PostgreSQL 16)
 -- Script de ejecucion y verificacion automatizada
 -- Valida: Funciones, Procedimientos y Triggers
 -- =====================================================================
@@ -25,7 +25,7 @@ DECLARE
     v_fecha_base TIMESTAMP := (CURRENT_DATE + INTERVAL '5 days')::TIMESTAMP;
 BEGIN
     RAISE NOTICE '=====================================================';
-    RAISE NOTICE 'INICIANDO SUITE DE PRUEBAS DEL RDBMS (EDT 7.1)';
+    RAISE NOTICE 'INICIANDO SUITE DE PRUEBAS DEL RDBMS';
     RAISE NOTICE '=====================================================';
 
     -- -----------------------------------------------------------------

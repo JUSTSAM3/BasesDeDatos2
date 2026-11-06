@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -46,6 +47,18 @@ public class EventoNoSqlController {
             @RequestParam(required = false) Integer idCliente
     ) {
         return ResponseEntity.ok(eventoNoSqlService.listarDetallesEvento(tipoEvento, idCliente));
+    }
+
+    @GetMapping("/detalles-evento/busqueda-avanzada")
+    public ResponseEntity<List<DetalleEvento>> busquedaAvanzadaEventos(
+            @RequestParam(required = false) List<String> tiposEvento,
+            @RequestParam(required = false) Integer minInvitados,
+            @RequestParam(required = false) String estadoReserva,
+            @RequestParam(required = false) Instant fechaDesde,
+            @RequestParam(required = false) Instant fechaHasta
+    ) {
+        return ResponseEntity.ok(eventoNoSqlService.consultarEventosAvanzado(
+                tiposEvento, minInvitados, estadoReserva, fechaDesde, fechaHasta));
     }
 
     @GetMapping("/detalles-evento/reserva/{idReserva}")
@@ -90,6 +103,19 @@ public class EventoNoSqlController {
             @RequestBody Resena.RespuestaAdmin respuesta
     ) {
         return ResponseEntity.ok(eventoNoSqlService.responderResenaAdmin(idReserva, respuesta));
+    }
+
+    @DeleteMapping("/resenas/reserva/{idReserva}")
+    public ResponseEntity<Map<String, Object>> eliminarResenaPorReserva(@PathVariable Integer idReserva) {
+        boolean eliminado = eventoNoSqlService.eliminarResenaPorReserva(idReserva);
+        if (!eliminado) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(Map.of(
+                "idReserva", idReserva,
+                "eliminado", true,
+                "mensaje", "Reseña eliminada de MongoDB exitosamente."
+        ));
     }
 
     // ==================== REPORTES Y AGREGACIONES (RF-18) ====================

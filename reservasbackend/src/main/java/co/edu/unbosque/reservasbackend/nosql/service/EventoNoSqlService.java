@@ -4,16 +4,21 @@ import co.edu.unbosque.reservasbackend.nosql.document.DetalleEvento;
 import co.edu.unbosque.reservasbackend.nosql.document.Resena;
 import co.edu.unbosque.reservasbackend.nosql.repository.DetalleEventoRepository;
 import co.edu.unbosque.reservasbackend.nosql.repository.ResenaRepository;
+import co.edu.unbosque.reservasbackend.sql.entity.Reserva;
+import co.edu.unbosque.reservasbackend.sql.repository.ReservaRepository;
 import org.bson.Document;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,13 +36,23 @@ public class EventoNoSqlService {
     private final DetalleEventoRepository detalleEventoRepository;
     private final ResenaRepository resenaRepository;
     private final MongoTemplate mongoTemplate;
+    private final ReservaRepository reservaRepository;
+
+    @Autowired
+    public EventoNoSqlService(DetalleEventoRepository detalleEventoRepository,
+                             ResenaRepository resenaRepository,
+                             MongoTemplate mongoTemplate,
+                             @Autowired(required = false) ReservaRepository reservaRepository) {
+        this.detalleEventoRepository = detalleEventoRepository;
+        this.resenaRepository = resenaRepository;
+        this.mongoTemplate = mongoTemplate;
+        this.reservaRepository = reservaRepository;
+    }
 
     public EventoNoSqlService(DetalleEventoRepository detalleEventoRepository,
                              ResenaRepository resenaRepository,
                              MongoTemplate mongoTemplate) {
-        this.detalleEventoRepository = detalleEventoRepository;
-        this.resenaRepository = resenaRepository;
-        this.mongoTemplate = mongoTemplate;
+        this(detalleEventoRepository, resenaRepository, mongoTemplate, null);
     }
 
     // =========================================================================
@@ -48,6 +63,42 @@ public class EventoNoSqlService {
         if (detalle.getIdReserva() == null || detalle.getIdReserva() < 1) {
             throw new IllegalArgumentException("El idReserva es obligatorio y debe ser mayor a 0");
         }
+
+        // Validación y sincronización de integridad contra PostgreSQL (MONGO-01)
+        if (reservaRepository != null) {
+            Reserva reserva = reservaRepository.findById(detalle.getIdReserva())
+                    .orElseThrow(() -> new IllegalArgumentException("No existe una reserva registrada con ID #" + detalle.getIdReserva() + " en PostgreSQL"));
+
+            if (reserva.getCliente() != null && reserva.getCliente().getIdCliente() != null) {
+                detalle.setIdCliente(reserva.getCliente().getIdCliente());
+            }
+            if (reserva.getEspacio() != null) {
+                if (detalle.getEspacio() == null) {
+                    detalle.setEspacio(new DetalleEvento.EspacioEmbed());
+                }
+                detalle.getEspacio().setIdEspacio(reserva.getEspacio().getIdEspacio());
+                if (reserva.getEspacio().getNombre() != null) {
+                    detalle.getEspacio().setNombre(reserva.getEspacio().getNombre());
+                }
+                if (reserva.getEspacio().getTipoEspacio() != null) {
+                    detalle.getEspacio().setTipo(reserva.getEspacio().getTipoEspacio().getNombre());
+                }
+                if (reserva.getEspacio().getSucursal() != null) {
+                    detalle.getEspacio().setIdSucursal(reserva.getEspacio().getSucursal().getIdSucursal());
+                    detalle.getEspacio().setCiudad(reserva.getEspacio().getSucursal().getCiudad());
+                }
+            }
+            if (reserva.getFechaInicio() != null && detalle.getFechaInicio() == null) {
+                detalle.setFechaInicio(reserva.getFechaInicio().atZone(ZoneId.systemDefault()).toInstant());
+            }
+            if (reserva.getFechaFin() != null && detalle.getFechaFin() == null) {
+                detalle.setFechaFin(reserva.getFechaFin().atZone(ZoneId.systemDefault()).toInstant());
+            }
+            if (reserva.getEstado() != null && (detalle.getEstadoReserva() == null || detalle.getEstadoReserva().isBlank())) {
+                detalle.setEstadoReserva(reserva.getEstado());
+            }
+        }
+
         if (detalle.getIdCliente() == null || detalle.getIdCliente() < 1) {
             detalle.setIdCliente(1);
         }
@@ -117,6 +168,72 @@ public class EventoNoSqlService {
         return false;
     }
 
+    /**
+     * Sincroniza el estado de la reserva en MongoDB cuando se cancela en PostgreSQL (APP-01).
+     * Si existe un documento en detalles_evento, actualiza estadoReserva a "cancelada".
+     */
+    public boolean sincronizarCancelacionReserva(Integer idReserva) {
+        if (idReserva == null) return false;
+        Optional<DetalleEvento> existente = detalleEventoRepository.findByIdReserva(idReserva);
+        if (existente.isPresent()) {
+            DetalleEvento detalle = existente.get();
+            detalle.setEstadoReserva("cancelada");
+            detalle.setActualizadoEn(Instant.now());
+            detalleEventoRepository.save(detalle);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Consulta compleja sobre la colección 'detalles_evento' (MONGO-03).
+     * Aplica filtros combinados ($in en tiposEvento, $gte en minInvitados, igualdad en estadoReserva,
+     * rango de fechas de inicio) y proyección de campos relevantes para optimizar ancho de banda.
+     */
+    public List<DetalleEvento> consultarEventosAvanzado(List<String> tiposEvento,
+                                                       Integer minInvitados,
+                                                       String estadoReserva,
+                                                       Instant fechaDesde,
+                                                       Instant fechaHasta) {
+        Query query = new Query();
+        List<Criteria> criteriaList = new ArrayList<>();
+
+        if (tiposEvento != null && !tiposEvento.isEmpty()) {
+            criteriaList.add(Criteria.where("tipo_evento").in(tiposEvento));
+        }
+        if (minInvitados != null && minInvitados > 0) {
+            criteriaList.add(Criteria.where("num_invitados_estimado").gte(minInvitados));
+        }
+        if (estadoReserva != null && !estadoReserva.isBlank()) {
+            criteriaList.add(Criteria.where("estado_reserva").is(estadoReserva));
+        }
+        if (fechaDesde != null && fechaHasta != null) {
+            criteriaList.add(Criteria.where("fecha_inicio").gte(fechaDesde).lte(fechaHasta));
+        } else if (fechaDesde != null) {
+            criteriaList.add(Criteria.where("fecha_inicio").gte(fechaDesde));
+        } else if (fechaHasta != null) {
+            criteriaList.add(Criteria.where("fecha_inicio").lte(fechaHasta));
+        }
+
+        if (!criteriaList.isEmpty()) {
+            query.addCriteria(new Criteria().andOperator(criteriaList.toArray(new Criteria[0])));
+        }
+
+        query.fields()
+                .include("id_reserva")
+                .include("id_cliente")
+                .include("tipo_evento")
+                .include("nombre_evento")
+                .include("fecha_inicio")
+                .include("fecha_fin")
+                .include("num_invitados_estimado")
+                .include("espacio")
+                .include("estado_reserva");
+
+        query.with(Sort.by(Sort.Direction.ASC, "fecha_inicio"));
+        return mongoTemplate.find(query, DetalleEvento.class);
+    }
+
     // =========================================================================
     // 2. CRUD COLECCION: resenas (RF-17)
     // =========================================================================
@@ -130,6 +247,23 @@ public class EventoNoSqlService {
                 || resena.getCalificacionGeneral() > 5) {
             throw new IllegalArgumentException("La calificación general debe estar entre 1 y 5");
         }
+
+        // Validación y sincronización de integridad contra PostgreSQL (MONGO-01)
+        if (reservaRepository != null) {
+            Reserva reserva = reservaRepository.findById(resena.getIdReserva())
+                    .orElseThrow(() -> new IllegalArgumentException("No existe una reserva registrada con ID #" + resena.getIdReserva() + " en PostgreSQL"));
+
+            if (reserva.getEstado() == null || !"finalizada".equalsIgnoreCase(reserva.getEstado())) {
+                throw new IllegalStateException("Solo se pueden registrar reseñas para reservas con estado 'finalizada'. Estado actual de la reserva #" + resena.getIdReserva() + ": " + reserva.getEstado());
+            }
+            if (reserva.getCliente() != null && reserva.getCliente().getIdCliente() != null) {
+                resena.setIdCliente(reserva.getCliente().getIdCliente());
+            }
+            if (reserva.getEspacio() != null && reserva.getEspacio().getIdEspacio() != null) {
+                resena.setIdEspacio(reserva.getEspacio().getIdEspacio());
+            }
+        }
+
         if (resena.getIdCliente() == null || resena.getIdCliente() < 1) {
             resena.setIdCliente(1);
         }
@@ -168,6 +302,16 @@ public class EventoNoSqlService {
             return resenaRepository.findByIdCliente(idCliente);
         }
         return resenaRepository.findAll();
+    }
+
+    public boolean eliminarResenaPorReserva(Integer idReserva) {
+        if (idReserva == null) return false;
+        Optional<Resena> existente = resenaRepository.findByIdReserva(idReserva);
+        if (existente.isPresent()) {
+            resenaRepository.delete(existente.get());
+            return true;
+        }
+        return false;
     }
 
     // =========================================================================

@@ -13,7 +13,6 @@ import java.util.Map;
 
 /**
  * Documento MongoDB para la coleccion 'detalles_evento'.
- * Corresponde a la especificacion EDT 4.1.1 (RF-16, RF-18).
  */
 @Document(collection = "detalles_evento")
 public class DetalleEvento {
@@ -21,15 +20,15 @@ public class DetalleEvento {
     @Id
     private String id;
 
-    @Indexed(unique = true)
+    @Indexed(name = "ux_id_reserva", unique = true)
     @Field("id_reserva")
     private Integer idReserva;
 
-    @Indexed
+    @Indexed(name = "ix_cliente")
     @Field("id_cliente")
     private Integer idCliente;
 
-    @Indexed
+    @Indexed(name = "ix_tipo_evento")
     @Field("tipo_evento")
     private String tipoEvento;
 

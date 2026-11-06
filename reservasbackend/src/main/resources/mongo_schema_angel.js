@@ -1,105 +1,114 @@
 // =====================================================================
-// EDT 4.1.1 / 4.2.1 - Esquema, Datos Semilla y Agregaciones MongoDB
+// Esquema, Datos Semilla, Consultas Complejas, CRUD y Agregaciones MongoDB
 // Proyecto: Sistema de Gestión de Reservas de Espacios para Eventos
 // Uso: mongosh < mongo_schema_angel.js
-// Crea las colecciones con validación $jsonSchema, índices, datos
-// iniciales y ejecuta consultas complejas y pipelines de agregación.
 // =====================================================================
 
 db = db.getSiblingDB("reservas_eventos_docs");
 
 // ---------------------------------------------------------------------
-// 1. Colección: detalles_evento  (RF-16, RF-18)
-//    Un documento por reserva. Información de estructura variable.
+// 1. Colección: detalles_evento
+//    Un documento por reserva. Información logística de estructura variable.
 // ---------------------------------------------------------------------
-db.createCollection("detalles_evento", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["id_reserva", "id_cliente", "espacio", "tipo_evento",
-                 "nombre_evento", "fecha_inicio", "fecha_fin", "creado_en"],
-      properties: {
-        id_reserva:   { bsonType: "int", minimum: 1, description: "FK lógica a reservas.id_reserva (PostgreSQL)" },
-        id_cliente:   { bsonType: "int", minimum: 1, description: "FK lógica a clientes.id_cliente" },
-        tipo_evento:  { enum: ["boda", "cumpleanos", "conferencia", "corporativo", "grado", "social", "otro"] },
-        nombre_evento:{ bsonType: "string", maxLength: 150 },
-        fecha_inicio: { bsonType: "date" },
-        fecha_fin:    { bsonType: "date" },
-        num_invitados_estimado: { bsonType: "int", minimum: 0 },
-        espacio: {
+const validadorDetallesEvento = {
+  $jsonSchema: {
+    bsonType: "object",
+    required: ["id_reserva", "id_cliente", "espacio", "tipo_evento",
+               "nombre_evento", "fecha_inicio", "fecha_fin", "creado_en"],
+    properties: {
+      id_reserva:   { bsonType: "int", minimum: 1, description: "FK lógica a reservas.id_reserva (PostgreSQL)" },
+      id_cliente:   { bsonType: "int", minimum: 1, description: "FK lógica a clientes.id_cliente" },
+      tipo_evento:  { enum: ["boda", "cumpleanos", "conferencia", "corporativo", "grado", "social", "otro"] },
+      nombre_evento:{ bsonType: "string", maxLength: 150 },
+      fecha_inicio: { bsonType: "date" },
+      fecha_fin:    { bsonType: "date" },
+      num_invitados_estimado: { bsonType: "int", minimum: 0 },
+      espacio: {
+        bsonType: "object",
+        required: ["id_espacio", "nombre", "id_sucursal"],
+        properties: {
+          id_espacio:  { bsonType: "int" },
+          nombre:      { bsonType: "string" },
+          tipo:        { bsonType: "string" },
+          id_sucursal: { bsonType: "int" },
+          ciudad:      { bsonType: "string" }
+        }
+      },
+      servicios: {
+        bsonType: "array",
+        items: {
           bsonType: "object",
-          required: ["id_espacio", "nombre", "id_sucursal"],
+          required: ["id_servicio", "nombre", "cantidad"],
           properties: {
-            id_espacio:  { bsonType: "int" },
+            id_servicio: { bsonType: "int" },
             nombre:      { bsonType: "string" },
-            tipo:        { bsonType: "string" },
-            id_sucursal: { bsonType: "int" },
-            ciudad:      { bsonType: "string" }
+            cantidad:    { bsonType: "int", minimum: 1 }
           }
-        },
-        servicios: {
-          bsonType: "array",
-          items: {
-            bsonType: "object",
-            required: ["id_servicio", "nombre", "cantidad"],
-            properties: {
-              id_servicio: { bsonType: "int" },
-              nombre:      { bsonType: "string" },
-              cantidad:    { bsonType: "int", minimum: 1 }
-            }
+        }
+      },
+      invitados: {
+        bsonType: "array",
+        maxItems: 2000,
+        items: {
+          bsonType: "object",
+          required: ["nombre"],
+          properties: {
+            nombre:     { bsonType: "string", maxLength: 120 },
+            email:      { bsonType: "string", pattern: "^.+@.+\\..+$" },
+            telefono:   { bsonType: "string" },
+            confirmado: { bsonType: "bool" },
+            mesa:       { bsonType: "int" },
+            restricciones_alimentarias: { bsonType: "array", items: { bsonType: "string" } }
           }
-        },
-        invitados: {
-          bsonType: "array",
-          maxItems: 2000,
-          items: {
-            bsonType: "object",
-            required: ["nombre"],
-            properties: {
-              nombre:     { bsonType: "string", maxLength: 120 },
-              email:      { bsonType: "string", pattern: "^.+@.+\\..+$" },
-              telefono:   { bsonType: "string" },
-              confirmado: { bsonType: "bool" },
-              mesa:       { bsonType: "int" },
-              restricciones_alimentarias: { bsonType: "array", items: { bsonType: "string" } }
-            }
+        }
+      },
+      requerimientos_especiales: {
+        bsonType: "array",
+        items: {
+          bsonType: "object",
+          required: ["tipo", "descripcion"],
+          properties: {
+            tipo:        { enum: ["montaje", "tecnico", "alimentacion", "accesibilidad", "seguridad", "otro"] },
+            descripcion: { bsonType: "string" },
+            estado:      { enum: ["pendiente", "en_proceso", "cumplido"] }
           }
-        },
-        requerimientos_especiales: {
-          bsonType: "array",
-          items: {
-            bsonType: "object",
-            required: ["tipo", "descripcion"],
-            properties: {
-              tipo:        { enum: ["montaje", "tecnico", "alimentacion", "accesibilidad", "seguridad", "otro"] },
-              descripcion: { bsonType: "string" },
-              estado:      { enum: ["pendiente", "en_proceso", "cumplido"] }
-            }
+        }
+      },
+      agenda: {
+        bsonType: "array",
+        items: {
+          bsonType: "object",
+          required: ["hora_inicio", "actividad"],
+          properties: {
+            hora_inicio: { bsonType: "date" },
+            hora_fin:    { bsonType: "date" },
+            actividad:   { bsonType: "string" },
+            responsable: { bsonType: "string" }
           }
-        },
-        agenda: {
-          bsonType: "array",
-          items: {
-            bsonType: "object",
-            required: ["hora_inicio", "actividad"],
-            properties: {
-              hora_inicio: { bsonType: "date" },
-              hora_fin:    { bsonType: "date" },
-              actividad:   { bsonType: "string" },
-              responsable: { bsonType: "string" }
-            }
-          }
-        },
-        datos_extra:    { bsonType: "object", description: "Campos libres según tipo_evento" },
-        estado_reserva: { enum: ["pendiente", "confirmada", "cancelada", "finalizada"] },
-        creado_en:      { bsonType: "date" },
-        actualizado_en: { bsonType: "date" }
-      }
+        }
+      },
+      datos_extra:    { bsonType: "object", description: "Campos libres según tipo_evento" },
+      estado_reserva: { enum: ["pendiente", "confirmada", "cancelada", "finalizada"] },
+      creado_en:      { bsonType: "date" },
+      actualizado_en: { bsonType: "date" }
     }
-  },
-  validationLevel: "strict",
-  validationAction: "error"
-});
+  }
+};
+
+if (db.getCollectionNames().includes("detalles_evento")) {
+  db.runCommand({
+    collMod: "detalles_evento",
+    validator: validadorDetallesEvento,
+    validationLevel: "strict",
+    validationAction: "error"
+  });
+} else {
+  db.createCollection("detalles_evento", {
+    validator: validadorDetallesEvento,
+    validationLevel: "strict",
+    validationAction: "error"
+  });
+}
 
 db.detalles_evento.createIndex({ id_reserva: 1 }, { unique: true, name: "ux_id_reserva" });
 db.detalles_evento.createIndex({ "espacio.id_espacio": 1, fecha_inicio: 1 }, { name: "ix_espacio_fecha" });
@@ -108,54 +117,65 @@ db.detalles_evento.createIndex({ "servicios.id_servicio": 1 }, { name: "ix_servi
 db.detalles_evento.createIndex({ id_cliente: 1 }, { name: "ix_cliente" });
 
 // ---------------------------------------------------------------------
-// 2. Colección: resenas  (RF-17, RF-18)
+// 2. Colección: resenas
 //    Una reseña por reserva finalizada.
 // ---------------------------------------------------------------------
-db.createCollection("resenas", {
-  validator: {
-    $jsonSchema: {
-      bsonType: "object",
-      required: ["id_reserva", "id_cliente", "id_espacio", "calificacion_general", "fecha_resena"],
-      properties: {
-        id_reserva: { bsonType: "int", minimum: 1 },
-        id_cliente: { bsonType: "int", minimum: 1 },
-        id_espacio: { bsonType: "int", minimum: 1 },
-        calificacion_general: { bsonType: "int", minimum: 1, maximum: 5 },
-        calificaciones: {
-          bsonType: "object",
-          properties: {
-            espacio:      { bsonType: "int", minimum: 1, maximum: 5 },
-            servicios:    { bsonType: "int", minimum: 1, maximum: 5 },
-            coordinacion: { bsonType: "int", minimum: 1, maximum: 5 },
-            precio:       { bsonType: "int", minimum: 1, maximum: 5 }
-          }
-        },
-        comentario:   { bsonType: "string", maxLength: 2000 },
-        recomendaria: { bsonType: "bool" },
-        etiquetas:    { bsonType: "array", items: { bsonType: "string" } },
-        respuesta_admin: {
-          bsonType: "object",
-          required: ["texto", "id_empleado", "fecha"],
-          properties: {
-            texto:       { bsonType: "string" },
-            id_empleado: { bsonType: "int" },
-            fecha:       { bsonType: "date" }
-          }
-        },
-        fecha_resena: { bsonType: "date" }
-      }
+const validadorResenas = {
+  $jsonSchema: {
+    bsonType: "object",
+    required: ["id_reserva", "id_cliente", "id_espacio", "calificacion_general", "fecha_resena"],
+    properties: {
+      id_reserva: { bsonType: "int", minimum: 1 },
+      id_cliente: { bsonType: "int", minimum: 1 },
+      id_espacio: { bsonType: "int", minimum: 1 },
+      calificacion_general: { bsonType: "int", minimum: 1, maximum: 5 },
+      calificaciones: {
+        bsonType: "object",
+        properties: {
+          espacio:      { bsonType: "int", minimum: 1, maximum: 5 },
+          servicios:    { bsonType: "int", minimum: 1, maximum: 5 },
+          coordinacion: { bsonType: "int", minimum: 1, maximum: 5 },
+          precio:       { bsonType: "int", minimum: 1, maximum: 5 }
+        }
+      },
+      comentario:   { bsonType: "string", maxLength: 2000 },
+      recomendaria: { bsonType: "bool" },
+      etiquetas:    { bsonType: "array", items: { bsonType: "string" } },
+      respuesta_admin: {
+        bsonType: "object",
+        required: ["texto", "id_empleado", "fecha"],
+        properties: {
+          texto:       { bsonType: "string" },
+          id_empleado: { bsonType: "int" },
+          fecha:       { bsonType: "date" }
+        }
+      },
+      fecha_resena: { bsonType: "date" }
     }
-  },
-  validationLevel: "strict",
-  validationAction: "error"
-});
+  }
+};
+
+if (db.getCollectionNames().includes("resenas")) {
+  db.runCommand({
+    collMod: "resenas",
+    validator: validadorResenas,
+    validationLevel: "strict",
+    validationAction: "error"
+  });
+} else {
+  db.createCollection("resenas", {
+    validator: validadorResenas,
+    validationLevel: "strict",
+    validationAction: "error"
+  });
+}
 
 db.resenas.createIndex({ id_reserva: 1 }, { unique: true, name: "ux_resena_reserva" });
 db.resenas.createIndex({ id_espacio: 1, calificacion_general: -1 }, { name: "ix_espacio_calificacion" });
 db.resenas.createIndex({ id_cliente: 1 }, { name: "ix_resena_cliente" });
 
 // ---------------------------------------------------------------------
-// 3. Operaciones CRUD: Inserción idempotente de datos semilla
+// 3. Inserción idempotente de datos semilla
 // ---------------------------------------------------------------------
 db.detalles_evento.updateOne(
   { id_reserva: Int32(101) },
@@ -232,6 +252,39 @@ db.detalles_evento.updateOne(
   { upsert: true }
 );
 
+db.detalles_evento.updateOne(
+  { id_reserva: Int32(103) },
+  {
+    $setOnInsert: {
+      id_reserva: Int32(103),
+      id_cliente: Int32(2),
+      espacio: {
+        id_espacio: Int32(2),
+        nombre: "Terraza Nómada 93",
+        tipo: "Terraza Lounge",
+        id_sucursal: Int32(2),
+        ciudad: "Bogotá"
+      },
+      tipo_evento: "corporativo",
+      nombre_evento: "Lanzamiento Anual de Producto TechNova",
+      fecha_inicio: new Date("2026-11-28T17:00:00Z"),
+      fecha_fin: new Date("2026-11-28T22:00:00Z"),
+      num_invitados_estimado: Int32(90),
+      servicios: [
+        { id_servicio: Int32(2), nombre: "Sonido e Iluminación Profesional", cantidad: Int32(1) },
+        { id_servicio: Int32(4), nombre: "Fotografía y Video Cobertura Total", cantidad: Int32(1) }
+      ],
+      requerimientos_especiales: [
+        { tipo: "seguridad", descripcion: "Control de acceso con código QR en recepción", estado: "pendiente" }
+      ],
+      datos_extra: { empresaOrganizadora: "TechNova Soluciones S.A.S.", codigoVestimenta: "Smart Casual" },
+      estado_reserva: "pendiente",
+      creado_en: new Date()
+    }
+  },
+  { upsert: true }
+);
+
 db.resenas.updateOne(
   { id_reserva: Int32(101) },
   {
@@ -274,7 +327,194 @@ db.resenas.updateOne(
 );
 
 // ---------------------------------------------------------------------
-// 4. Pipelines de Agregación (RF-18)
+// 4. Consultas Complejas con Filtros Combinados y Proyección
+// ---------------------------------------------------------------------
+print("\n--- CONSULTA COMPLEJA 1: Eventos confirmados con >=100 invitados y proyección ---");
+printjson(
+  db.detalles_evento.find(
+    {
+      $and: [
+        { tipo_evento: { $in: ["conferencia", "social", "boda"] } },
+        { estado_reserva: "confirmada" },
+        { num_invitados_estimado: { $gte: 100 } },
+        { fecha_inicio: { $gte: new Date("2026-01-01T00:00:00Z") } }
+      ]
+    },
+    {
+      id_reserva: 1,
+      id_cliente: 1,
+      tipo_evento: 1,
+      nombre_evento: 1,
+      "espacio.nombre": 1,
+      "espacio.ciudad": 1,
+      num_invitados_estimado: 1,
+      fecha_inicio: 1,
+      fecha_fin: 1,
+      estado_reserva: 1,
+      _id: 0
+    }
+  ).sort({ fecha_inicio: 1 }).toArray()
+);
+
+print("\n--- CONSULTA COMPLEJA 2: Eventos con requerimientos logísticos pendientes ($elemMatch) ---");
+printjson(
+  db.detalles_evento.find(
+    {
+      estado_reserva: { $ne: "cancelada" },
+      requerimientos_especiales: {
+        $elemMatch: {
+          tipo: { $in: ["montaje", "alimentacion", "seguridad"] },
+          estado: { $in: ["pendiente", "en_proceso"] }
+        }
+      }
+    },
+    {
+      id_reserva: 1,
+      nombre_evento: 1,
+      "espacio.nombre": 1,
+      requerimientos_especiales: 1,
+      _id: 0
+    }
+  ).sort({ id_reserva: 1 }).toArray()
+);
+
+print("\n--- CONSULTA COMPLEJA 3: Eventos con invitados confirmados y restricciones alimentarias ---");
+printjson(
+  db.detalles_evento.find(
+    {
+      invitados: {
+        $elemMatch: {
+          confirmado: true,
+          restricciones_alimentarias: { $exists: true, $not: { $size: 0 } }
+        }
+      }
+    },
+    {
+      id_reserva: 1,
+      nombre_evento: 1,
+      "invitados.nombre": 1,
+      "invitados.mesa": 1,
+      "invitados.restricciones_alimentarias": 1,
+      _id: 0
+    }
+  ).toArray()
+);
+
+// ---------------------------------------------------------------------
+// 5. Ejemplos de Operaciones CRUD y Validación $jsonSchema
+// ---------------------------------------------------------------------
+
+// --- CRUD: Colección detalles_evento ---
+db.detalles_evento.deleteOne({ id_reserva: Int32(199) });
+
+// CREATE: Inserción de un nuevo detalle de evento
+db.detalles_evento.insertOne({
+  id_reserva: Int32(199),
+  id_cliente: Int32(1),
+  espacio: {
+    id_espacio: Int32(2),
+    nombre: "Terraza Nómada 93",
+    tipo: "Terraza Lounge",
+    id_sucursal: Int32(2),
+    ciudad: "Bogotá"
+  },
+  tipo_evento: "social",
+  nombre_evento: "Celebración de Prueba CRUD",
+  fecha_inicio: new Date("2026-12-01T18:00:00Z"),
+  fecha_fin: new Date("2026-12-01T23:00:00Z"),
+  num_invitados_estimado: Int32(60),
+  servicios: [
+    { id_servicio: Int32(2), nombre: "Sonido e Iluminación Profesional", cantidad: Int32(1) }
+  ],
+  requerimientos_especiales: [
+    { tipo: "montaje", descripcion: "Mobiliario tipo lounge", estado: "pendiente" }
+  ],
+  estado_reserva: "confirmada",
+  creado_en: new Date()
+});
+
+// READ: Consulta por id_reserva
+print("\n--- READ detalles_evento (id_reserva 199) ---");
+printjson(db.detalles_evento.findOne({ id_reserva: Int32(199) }));
+
+// UPDATE: Modificación con $set y $push
+db.detalles_evento.updateOne(
+  { id_reserva: Int32(199) },
+  {
+    $set: {
+      num_invitados_estimado: Int32(75),
+      actualizado_en: new Date()
+    },
+    $push: {
+      requerimientos_especiales: {
+        tipo: "tecnico",
+        descripcion: "Micrófono inalámbrico adicional",
+        estado: "pendiente"
+      }
+    }
+  }
+);
+
+// DELETE: Eliminación de documento de prueba
+db.detalles_evento.deleteOne({ id_reserva: Int32(199) });
+
+// --- CRUD: Colección resenas ---
+db.resenas.deleteOne({ id_reserva: Int32(199) });
+
+// CREATE: Inserción de una nueva reseña post-evento
+db.resenas.insertOne({
+  id_reserva: Int32(199),
+  id_cliente: Int32(1),
+  id_espacio: Int32(2),
+  calificacion_general: Int32(4),
+  calificaciones: {
+    espacio: Int32(4),
+    servicios: Int32(5),
+    coordinacion: Int32(4),
+    precio: Int32(4)
+  },
+  comentario: "Excelente servicio y vista, muy recomendado.",
+  recomendaria: true,
+  etiquetas: ["vista panorámica", "buen servicio"],
+  fecha_resena: new Date()
+});
+
+// READ: Consulta de reseñas de un espacio
+print("\n--- READ resenas (id_espacio 2) ---");
+printjson(db.resenas.find({ id_espacio: Int32(2) }).toArray());
+
+// UPDATE: Respuesta administrativa a la reseña con $set
+db.resenas.updateOne(
+  { id_reserva: Int32(199) },
+  {
+    $set: {
+      respuesta_admin: {
+        texto: "¡Muchas gracias por sus comentarios! Nos alegra que disfrutaran de la Terraza.",
+        id_empleado: Int32(3),
+        fecha: new Date()
+      }
+    }
+  }
+);
+
+// DELETE: Eliminación de reseña por reserva
+db.resenas.deleteOne({ id_reserva: Int32(199) });
+
+// Demostración de rechazo por validador $jsonSchema
+try {
+  db.resenas.insertOne({
+    id_reserva: Int32(9999),
+    id_cliente: Int32(1),
+    id_espacio: Int32(1),
+    calificacion_general: Int32(10),
+    fecha_resena: new Date()
+  });
+} catch (err) {
+  print("\n[OK] Validador $jsonSchema rechazó documento con calificación fuera de rango (1..5): " + err.message);
+}
+
+// ---------------------------------------------------------------------
+// 6. Pipelines de Agregación
 // ---------------------------------------------------------------------
 
 print("\n--- AGREGACIÓN 1: Espacios más reservados ---");
@@ -344,4 +584,4 @@ printjson(
   ]).toArray()
 );
 
-print("\nColecciones detalles_evento y resenas creadas con validación, índices, datos semilla y agregaciones.");
+print("\nColecciones detalles_evento y resenas configuradas con validación, índices, datos semilla, CRUD y agregaciones.");
