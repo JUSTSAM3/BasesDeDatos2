@@ -313,32 +313,22 @@ export class HomeComponent implements OnInit {
       return;
     }
 
-    const clavesValidas = ['staff123', 'admin123', 'prueba123'];
-    if (!clavesValidas.includes(clave)) {
-      this.errorStaff = 'Acceso denegado: correo corporativo o clave no válidos.';
-      return;
-    }
-
     this.validandoStaff = true;
-    this.backendService.listarEmpleados().subscribe({
-      next: (empleados: Empleado[]) => {
+    this.backendService.autenticarEmpleado({ email: correo, clave }).subscribe({
+      next: (empleado: Empleado) => {
         this.validandoStaff = false;
-        const encontrado = (empleados || []).find(
-          (emp) => emp.email && emp.email.trim().toLowerCase() === correo
-        );
-        if (!encontrado) {
-          this.errorStaff = 'No encontramos ningún empleado activo con ese correo corporativo.';
-          this.cdr.detectChanges();
-          return;
-        }
-        sessionStorage.setItem('staff_sesion', JSON.stringify(encontrado));
+        sessionStorage.setItem('staff_sesion', JSON.stringify(empleado));
         this.mostrarModalStaff = false;
         this.cdr.detectChanges();
         this.router.navigate(['/dashboard']);
       },
-      error: () => {
+      error: (err) => {
         this.validandoStaff = false;
-        this.errorStaff = 'No fue posible verificar las credenciales en este momento.';
+        this.errorStaff =
+          err?.error?.mensaje ||
+          (err?.status === 401
+            ? 'Acceso denegado: correo corporativo o clave no válidos.'
+            : 'No fue posible verificar las credenciales en este momento.');
         this.cdr.detectChanges();
       }
     });

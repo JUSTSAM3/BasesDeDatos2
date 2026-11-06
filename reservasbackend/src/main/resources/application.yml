@@ -5,7 +5,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:192.168.80.27}:${POSTGRES_PORT:5432}/${POSTGRES_DB:reservas_db}
     username: ${APP_DB_USER:app_reservas}
-    password: ${APP_DB_PASSWORD:app123}
+    password: ${APP_DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: ReservasHikariCP
@@ -17,12 +17,12 @@ spring:
       connection-test-query: SELECT 1
 
   mongodb:
-    uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:prueba123}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000
+    uri: ${MONGO_URI:mongodb://${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000}
     database: ${MONGO_DB:reservas_eventos_docs}
 
   data:
     mongodb:
-      uri: mongodb://${MONGO_USER:admin}:${MONGO_PASSWORD:prueba123}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000
+      uri: ${MONGO_URI:mongodb://${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000}
       database: ${MONGO_DB:reservas_eventos_docs}
 
   jpa:
@@ -38,7 +38,11 @@ spring:
   flyway:
     enabled: true
     user: ${POSTGRES_USER:reservas_admin}
-    password: ${POSTGRES_PASSWORD:prueba123}
+    password: ${POSTGRES_PASSWORD:}
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
+
+app:
+  security:
+    staff-access-key: ${STAFF_ACCESS_KEY:}

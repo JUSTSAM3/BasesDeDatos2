@@ -313,6 +313,10 @@ export class BackendService {
     return this.http.post<Empleado>(`${this.apiUrl}/empleados/crear`, empleado);
   }
 
+  autenticarEmpleado(credenciales: { email: string; clave: string }): Observable<Empleado> {
+    return this.http.post<Empleado>(`${this.apiUrl}/empleados/login`, credenciales);
+  }
+
   // ==================== SUCURSALES ====================
   listarSucursales(): Observable<Sucursal[]> {
     return this.http.get<Sucursal[]>(`${this.apiUrl}/sucursales/listar`);
