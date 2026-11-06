@@ -3,6 +3,7 @@ package co.edu.unbosque.reservasbackend.sql.service;
 import co.edu.unbosque.reservasbackend.dto.DisponibilidadResponseDTO;
 import co.edu.unbosque.reservasbackend.dto.ReservaRequestDTO;
 import co.edu.unbosque.reservasbackend.dto.ReservaResponseDTO;
+import co.edu.unbosque.reservasbackend.nosql.service.EventoNoSqlService;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -20,10 +21,14 @@ public class ReservaService {
 
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
+    private final EventoNoSqlService eventoNoSqlService;
 
-    public ReservaService(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
+    public ReservaService(JdbcTemplate jdbcTemplate,
+                          ObjectMapper objectMapper,
+                          EventoNoSqlService eventoNoSqlService) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
+        this.eventoNoSqlService = eventoNoSqlService;
     }
 
     /**
@@ -107,17 +112,28 @@ public class ReservaService {
     }
 
     /**
-     * RF-09: Cancela una reserva invocando el procedimiento almacenado SP_CANCELAR_RESERVA.
-     * Valida que no haya iniciado el evento y que no esté ya cancelada.
+     * Cancela una reserva invocando el procedimiento almacenado SP_CANCELAR_RESERVA.
+     * Valida que no haya iniciado el evento y que no esté ya cancelada en PostgreSQL,
+     * y sincroniza automáticamente el estado 'cancelada' en MongoDB si existe detalle_evento (APP-01).
      */
     @Transactional
     public Map<String, Object> cancelarReserva(Integer idReserva) {
         String sql = "CALL SP_CANCELAR_RESERVA(?)";
         jdbcTemplate.update(sql, idReserva);
 
+        boolean sincronizadoMongo = false;
+        try {
+            if (eventoNoSqlService != null) {
+                sincronizadoMongo = eventoNoSqlService.sincronizarCancelacionReserva(idReserva);
+            }
+        } catch (Exception e) {
+            System.err.println("[APP-01] Aviso: No se pudo sincronizar cancelación en MongoDB: " + e.getMessage());
+        }
+
         return Map.of(
                 "idReserva", idReserva,
                 "estado", "cancelada",
+                "sincronizadoMongo", sincronizadoMongo,
                 "mensaje", "Reserva cancelada exitosamente."
         );
     }

@@ -117,6 +117,23 @@ public class EventoNoSqlService {
         return false;
     }
 
+    /**
+     * Sincroniza el estado de la reserva en MongoDB cuando se cancela en PostgreSQL (APP-01).
+     * Si existe un documento en detalles_evento, actualiza estadoReserva a "cancelada".
+     */
+    public boolean sincronizarCancelacionReserva(Integer idReserva) {
+        if (idReserva == null) return false;
+        Optional<DetalleEvento> existente = detalleEventoRepository.findByIdReserva(idReserva);
+        if (existente.isPresent()) {
+            DetalleEvento detalle = existente.get();
+            detalle.setEstadoReserva("cancelada");
+            detalle.setActualizadoEn(Instant.now());
+            detalleEventoRepository.save(detalle);
+            return true;
+        }
+        return false;
+    }
+
     // =========================================================================
     // 2. CRUD COLECCION: resenas (RF-17)
     // =========================================================================
