@@ -89,6 +89,89 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_trg_actualizar_total_reserva();
 
 -- ---------------------------------------------------------------------
+-- 2.1 CORRECCION N-03: Recalcular reservas.costo_total al modificar fechas o espacio
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION fn_trg_recalcular_costo_reserva()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_tarifa DECIMAL(10,2);
+    v_horas NUMERIC;
+    v_costo_espacio DECIMAL(12,2) := 0.00;
+    v_costo_servicios DECIMAL(12,2) := 0.00;
+    v_nuevo_costo DECIMAL(12,2);
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.costo_total IS NULL OR NEW.costo_total = 0 THEN
+            SELECT tarifa_por_hora INTO v_tarifa
+            FROM espacios
+            WHERE id_espacio = NEW.id_espacio;
+
+            IF NEW.fecha_fin > NEW.fecha_inicio THEN
+                v_horas := EXTRACT(EPOCH FROM (NEW.fecha_fin - NEW.fecha_inicio)) / 3600.0;
+                IF v_horas < 1 THEN
+                    v_horas := 1;
+                END IF;
+            ELSE
+                v_horas := 1;
+            END IF;
+
+            NEW.costo_total := ROUND((v_horas * COALESCE(v_tarifa, 0.00))::numeric, 2);
+        END IF;
+
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF (NEW.fecha_inicio IS DISTINCT FROM OLD.fecha_inicio) OR
+           (NEW.fecha_fin IS DISTINCT FROM OLD.fecha_fin) OR
+           (NEW.id_espacio IS DISTINCT FROM OLD.id_espacio) THEN
+
+            SELECT tarifa_por_hora INTO v_tarifa
+            FROM espacios
+            WHERE id_espacio = NEW.id_espacio;
+
+            IF NOT FOUND THEN
+                RAISE EXCEPTION 'e_espacio_no_existe: El espacio % no existe', NEW.id_espacio;
+            END IF;
+
+            IF NEW.fecha_fin > NEW.fecha_inicio THEN
+                v_horas := EXTRACT(EPOCH FROM (NEW.fecha_fin - NEW.fecha_inicio)) / 3600.0;
+                IF v_horas < 1 THEN
+                    v_horas := 1;
+                END IF;
+            ELSE
+                v_horas := 1;
+            END IF;
+
+            v_costo_espacio := ROUND((v_horas * COALESCE(v_tarifa, 0.00))::numeric, 2);
+
+            -- Sumatoria de servicios adicionales existentes para esta reserva
+            SELECT COALESCE(SUM(subtotal), 0.00)
+            INTO v_costo_servicios
+            FROM reserva_servicios
+            WHERE id_reserva = NEW.id_reserva;
+
+            v_nuevo_costo := v_costo_espacio + v_costo_servicios;
+            NEW.costo_total := v_nuevo_costo;
+
+            -- Sincronizar la factura asociada (relacion 1:1) si ya fue emitida
+            UPDATE facturas
+            SET total = v_nuevo_costo
+            WHERE id_reserva = NEW.id_reserva
+              AND total IS DISTINCT FROM v_nuevo_costo;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_recalcular_costo_reserva ON reservas;
+CREATE TRIGGER trg_recalcular_costo_reserva
+BEFORE INSERT OR UPDATE ON reservas
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_recalcular_costo_reserva();
+
+-- ---------------------------------------------------------------------
 -- 3. CORRECCION D5: Fechas coherentes solo en INSERT o si cambian
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION fn_trg_validar_fechas_coherentes()

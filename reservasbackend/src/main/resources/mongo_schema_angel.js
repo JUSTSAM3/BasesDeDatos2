@@ -1,5 +1,5 @@
 // =====================================================================
-// EDT 4.1.1 / 4.2.1 - Esquema, Datos Semilla y Agregaciones MongoDB
+// Esquema, Datos Semilla y Agregaciones MongoDB
 // Proyecto: Sistema de Gestión de Reservas de Espacios para Eventos
 // Uso: mongosh < mongo_schema_angel.js
 // Crea las colecciones con validación $jsonSchema, índices, datos
