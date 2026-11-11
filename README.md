@@ -47,7 +47,10 @@ BasesDeDatos2/
 ├── docker-compose.yml                  # Contenedor PostgreSQL 16 (Debian Bookworm)
 ├── docker-compose-mongo.yml            # Contenedor MongoDB 7.0
 ├── .env.example                        # Plantilla de variables de entorno (sin claves en texto plano)
-├── .mailmap                            # Consolidación de identidades de autores en Git
+├── Entregables/                        # Documentación, diagramas y scripts del proyecto
+│   ├── Diagramas/                      # Modelos E-R, Relacional, Documental, C4 y Secuencia
+│   ├── Documentos/                     # Informe Ejecutivo, SRS, Diccionario de Datos, etc.
+│   └── Scrips/                         # Scripts consolidados de PostgreSQL (01..05) y MongoDB (01..03)
 ├── reservasbackend/                    # Backend Spring Boot 4 (Java 21)
 │   └── src/main/resources/
 │       ├── application.yml             # Configuración parametrizada por variables de entorno
@@ -122,24 +125,24 @@ docker ps
 
 ### 3. Ejecución Manual de Scripts SQL y MongoDB (Opcional / Evaluación Directa)
 
-Aunque **Flyway** aplica automáticamente las migraciones `V1` a `V7` al iniciar el backend, los scripts consolidados en `Documentos/Entregables/` pueden ejecutarse directamente en orden:
+Aunque **Flyway** aplica automáticamente las migraciones `V1` a `V7` al iniciar el backend, los scripts consolidados en `Entregables/Scrips/` pueden ejecutarse directamente en orden:
 
 #### PostgreSQL (`psql`):
 
 ```bash
-psql -h localhost -U reservas_admin -d reservas_db -f Documentos/Entregables/01_DDL_Creacion_Tablas_Constraints_Indices.sql
-psql -h localhost -U reservas_admin -d reservas_db -f Documentos/Entregables/02_Logica_Negocio_Procedimientos_Funciones_Triggers.sql
-psql -h localhost -U reservas_admin -d reservas_db -f Documentos/Entregables/03_Seguridad_Roles_y_Permisos.sql
-psql -h localhost -U reservas_admin -d reservas_db -f Documentos/Entregables/04_DML_Insercion_Datos_Semilla.sql
-psql -h localhost -U reservas_admin -d reservas_db -f Documentos/Entregables/05_SQL_Reportes_y_Transacciones_Consolidado.sql
+psql -h localhost -U reservas_admin -d reservas_db -f Entregables/Scrips/01_DDL_Creacion_Tablas_Constraints_Indices.sql
+psql -h localhost -U reservas_admin -d reservas_db -f Entregables/Scrips/02_Logica_Negocio_Procedimientos_Funciones_Triggers.sql
+psql -h localhost -U reservas_admin -d reservas_db -f Entregables/Scrips/03_Seguridad_Roles_y_Permisos.sql
+psql -h localhost -U reservas_admin -d reservas_db -f Entregables/Scrips/04_DML_Insercion_Datos_Semilla.sql
+psql -h localhost -U reservas_admin -d reservas_db -f Entregables/Scrips/05_SQL_Reportes_y_Transacciones_Consolidado.sql
 ```
 
 #### MongoDB (`mongosh`):
 
 ```bash
-mongosh "mongodb://admin:<MONGO_PASSWORD>@localhost:27017/admin" < Documentos/Entregables/Mongo_01_Creacion_Colecciones_Validadores_Indices.js
-mongosh "mongodb://admin:<MONGO_PASSWORD>@localhost:27017/admin" < Documentos/Entregables/Mongo_02_Datos_Semilla_y_Operaciones_CRUD.js
-mongosh "mongodb://admin:<MONGO_PASSWORD>@localhost:27017/admin" < Documentos/Entregables/Mongo_03_Consultas_Complejas_y_Agregaciones.js
+mongosh "mongodb://admin:<MONGO_PASSWORD>@localhost:27017/admin" < Entregables/Scrips/Mongo_01_Creacion_Colecciones_Validadores_Indices.js
+mongosh "mongodb://admin:<MONGO_PASSWORD>@localhost:27017/admin" < Entregables/Scrips/Mongo_02_Datos_Semilla_y_Operaciones_CRUD.js
+mongosh "mongodb://admin:<MONGO_PASSWORD>@localhost:27017/admin" < Entregables/Scrips/Mongo_03_Consultas_Complejas_y_Agregaciones.js
 ```
 
 *(O en un solo paso usando `reservasbackend/src/main/resources/mongo_schema_angel.js`).*

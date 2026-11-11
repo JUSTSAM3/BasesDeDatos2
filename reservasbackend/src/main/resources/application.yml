@@ -1,6 +1,8 @@
 spring:
   application:
     name: reservasbackend
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
 
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:192.168.80.27}:${POSTGRES_PORT:5432}/${POSTGRES_DB:reservas_db}
@@ -17,12 +19,12 @@ spring:
       connection-test-query: SELECT 1
 
   mongodb:
-    uri: ${MONGO_URI:mongodb://${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000}
+    uri: ${MONGO_URI:mongodb://${MONGO_USER:reservas_mongo_admin}:${MONGO_PASSWORD:}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000}
     database: ${MONGO_DB:reservas_eventos_docs}
 
   data:
     mongodb:
-      uri: ${MONGO_URI:mongodb://${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?connectTimeoutMS=3000&serverSelectionTimeoutMS=3000}
+      uri: ${MONGO_URI:mongodb://${MONGO_USER:reservas_mongo_admin}:${MONGO_PASSWORD:}@${MONGO_HOST:localhost}:${MONGO_PORT:27017}/${MONGO_DB:reservas_eventos_docs}?authSource=admin&connectTimeoutMS=3000&serverSelectionTimeoutMS=3000}
       database: ${MONGO_DB:reservas_eventos_docs}
 
   jpa:
@@ -42,6 +44,9 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
+    placeholders:
+      app_db_password: ${APP_DB_PASSWORD:}
+      reportes_db_password: ${REPORTES_DB_PASSWORD:${APP_DB_PASSWORD:}}
 
 app:
   security:
