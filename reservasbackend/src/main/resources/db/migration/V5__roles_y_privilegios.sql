@@ -5,14 +5,18 @@
 
 DO $$
 BEGIN
-    -- Crear rol app_reservas de forma idempotente
+    -- Crear o actualizar rol app_reservas inyectando la contraseña desde Flyway placeholders (.env)
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'app_reservas') THEN
-        CREATE ROLE app_reservas WITH LOGIN PASSWORD 'app123';
+        EXECUTE format('CREATE ROLE app_reservas WITH LOGIN PASSWORD %L', '${app_db_password}');
+    ELSE
+        EXECUTE format('ALTER ROLE app_reservas WITH LOGIN PASSWORD %L', '${app_db_password}');
     END IF;
 
-    -- Crear rol reportes_reservas de forma idempotente
+    -- Crear o actualizar rol reportes_reservas inyectando la contraseña desde Flyway placeholders (.env)
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'reportes_reservas') THEN
-        CREATE ROLE reportes_reservas WITH LOGIN PASSWORD 'rep123';
+        EXECUTE format('CREATE ROLE reportes_reservas WITH LOGIN PASSWORD %L', '${reportes_db_password}');
+    ELSE
+        EXECUTE format('ALTER ROLE reportes_reservas WITH LOGIN PASSWORD %L', '${reportes_db_password}');
     END IF;
 END
 $$;

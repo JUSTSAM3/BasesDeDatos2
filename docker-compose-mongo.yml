@@ -1,16 +1,14 @@
-version: '3.8'
-
 services:
   mongodb:
     image: mongo:7.0
     container_name: reservas-mongodb
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-reservas_mongo_admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?Defina MONGO_PASSWORD en el archivo .env}
       MONGO_INITDB_DATABASE: ${MONGO_DB:-reservas_eventos_docs}
     ports:
-      - "27017:27017"
+      - "${MONGO_PORT:-27017}:27017"
     volumes:
       - mongo_data:/data/db
 
